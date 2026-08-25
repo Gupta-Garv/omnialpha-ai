@@ -58,7 +58,7 @@ class AlpacaClient:
                 symbol=symbol,
                 qty=qty,
                 side=order_side,
-                time_inforce=TimeInForce.DAY
+                time_in_force=TimeInForce.DAY
             )
             order = self.client.submit_order(req)
             return {

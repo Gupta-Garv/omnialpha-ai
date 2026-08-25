@@ -21,7 +21,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OMNIALPHA // QUANTITATIVE OPTIONS DESK</title>
+    <title>OMNIALPHA AI // QUANTITATIVE OPTIONS DESK</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -418,11 +418,16 @@ def get_state():
             eval_res = committee.evaluate_opportunity(sym, account)
             signals.append(eval_res)
             
-            # Log entry in Reflexion Memory if active trade proposed
+            # Log entry & submit live paper trade order to Alpaca when proposed
             if eval_res.get("action") == "PROPOSE_TRADE":
                 strat = eval_res.get("strategy_type", "BULL_PUT_SPREAD")
                 conf = eval_res.get("confidence", 0.78)
                 audit = eval_res.get("audit_trail", {})
+                
+                # Execute paper trade directly on Alpaca API
+                trade_res = alpaca_client.submit_paper_trade(sym, side="buy", qty=1)
+                audit["alpaca_order_id"] = trade_res.get("order_id", "SIMULATED")
+                
                 reflexion_memory.record_entry(sym, strat, conf, audit)
             
     return jsonify({

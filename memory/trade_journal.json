@@ -100,5 +100,125 @@
     "status": "OPEN",
     "pnl_dollars": 0.0,
     "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_7_SPY_1787679134",
+    "timestamp": "2026-08-25T23:02:14.344175",
+    "symbol": "SPY",
+    "strategy": "BULL_PUT_SPREAD",
+    "confidence": 0.78,
+    "audit_trail": {
+      "sentiment_signal": "BULLISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [
+        "Trade active in paper portfolio."
+      ],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BULL_PUT_SPREAD based on BULLISH_VELOCITY velocity.",
+      "alpaca_order_id": "bcb73710-cbbd-49db-9d08-4d796029dd22"
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_8_QQQ_1787679144",
+    "timestamp": "2026-08-25T23:02:24.478679",
+    "symbol": "QQQ",
+    "strategy": "BULL_PUT_SPREAD",
+    "confidence": 0.78,
+    "audit_trail": {
+      "sentiment_signal": "BULLISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [
+        "Trade active in paper portfolio."
+      ],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BULL_PUT_SPREAD based on BULLISH_VELOCITY velocity.",
+      "alpaca_order_id": "55184f25-2b76-4b81-b3df-d7f9df3cd24f"
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_9_NVDA_1787679146",
+    "timestamp": "2026-08-25T23:02:26.590172",
+    "symbol": "NVDA",
+    "strategy": "BULL_PUT_SPREAD",
+    "confidence": 0.78,
+    "audit_trail": {
+      "sentiment_signal": "BULLISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [
+        "Trade active in paper portfolio."
+      ],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BULL_PUT_SPREAD based on BULLISH_VELOCITY velocity.",
+      "alpaca_order_id": "f89e660b-616b-411f-86db-49a2b64213f8"
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_10_AAPL_1787679148",
+    "timestamp": "2026-08-25T23:02:28.332550",
+    "symbol": "AAPL",
+    "strategy": "BULL_PUT_SPREAD",
+    "confidence": 0.78,
+    "audit_trail": {
+      "sentiment_signal": "BULLISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [
+        "Trade active in paper portfolio."
+      ],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BULL_PUT_SPREAD based on BULLISH_VELOCITY velocity.",
+      "alpaca_order_id": "fbafe839-5c36-4095-b02c-17f0413834a6"
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_11_TSLA_1787679150",
+    "timestamp": "2026-08-25T23:02:30.352747",
+    "symbol": "TSLA",
+    "strategy": "BEAR_CALL_SPREAD",
+    "confidence": 0.72,
+    "audit_trail": {
+      "sentiment_signal": "BEARISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [
+        "Trade active in paper portfolio."
+      ],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BEAR_CALL_SPREAD based on BEARISH_VELOCITY velocity.",
+      "alpaca_order_id": "6102918c-325c-49fd-a77b-1c9a06c74590"
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_12_AMD_1787679152",
+    "timestamp": "2026-08-25T23:02:32.864657",
+    "symbol": "AMD",
+    "strategy": "BULL_PUT_SPREAD",
+    "confidence": 0.78,
+    "audit_trail": {
+      "sentiment_signal": "BULLISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [
+        "Trade active in paper portfolio."
+      ],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BULL_PUT_SPREAD based on BULLISH_VELOCITY velocity.",
+      "alpaca_order_id": "bd941458-b2ba-4387-bb1e-41ddc8488e2f"
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
   }
 ]
