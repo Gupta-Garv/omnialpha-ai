@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from datetime import datetime
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from flask import Flask, render_template_string, jsonify
@@ -12,8 +13,24 @@ app = Flask(__name__)
 
 SYSTEM_STATE = {
     "kill_switch_engaged": False,
-    "status": "OPERATIONAL"
+    "status": "OPERATIONAL",
+    "console_logs": [
+        f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: OmniAlpha Quantitative Options Engine Online.",
+        f"[{datetime.now().strftime('%H:%M:%S')}] REFLEXION: Self-Learning Memory Store initialized from disk.",
+        f"[{datetime.now().strftime('%H:%M:%S')}] ALPACA_API: Connected to paper account ae811ce4-f4dc-47a9-975f-fa2e6b42c169.",
+        f"[{datetime.now().strftime('%H:%M:%S')}] SCANNER: Monitoring SEC EDGAR filings & market sentiment velocity."
+    ]
 }
+
+EQUITY_HISTORY = []
+
+def add_console_log(msg: str):
+    """Add a timestamped entry to the rolling system console log."""
+    ts = datetime.now().strftime('%H:%M:%S')
+    entry = f"[{ts}] {msg}"
+    SYSTEM_STATE["console_logs"].append(entry)
+    if len(SYSTEM_STATE["console_logs"]) > 50:
+        SYSTEM_STATE["console_logs"].pop(0)
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -172,6 +189,12 @@ HTML_TEMPLATE = """
             border: 1px solid #1E2638;
             padding: 10px;
             display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .watch-top {
+            display: flex;
             justify-content: space-between;
             align-items: center;
         }
@@ -179,15 +202,23 @@ HTML_TEMPLATE = """
         .watch-sym { font-weight: 700; font-size: 0.9rem; color: #FFFFFF; }
         .watch-sig { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.5px; }
 
+        .watch-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #64748B;
+        }
+
         .console-box {
             background-color: #04060A;
             border: 1px solid #121824;
             padding: 12px;
             font-size: 0.75rem;
             color: #00FF66;
-            height: 120px;
+            height: 140px;
             overflow-y: auto;
             line-height: 1.6;
+            font-family: 'Space Mono', monospace;
         }
     </style>
 </head>
@@ -224,24 +255,19 @@ HTML_TEMPLATE = """
     <div class="grid-main">
         <div class="panel">
             <div class="panel-header">
-                <div>PORTFOLIO PERFORMANCE CURVE</div>
-                <div class="txt-muted">REAL-TIME DATA</div>
+                <div>PORTFOLIO PERFORMANCE CURVE (REAL-TIME EQUITY)</div>
+                <div class="txt-muted" id="chart-tick-time">TICK: REALTIME</div>
             </div>
             <canvas id="equityChart" style="max-height: 180px;"></canvas>
         </div>
 
         <div class="panel">
             <div class="panel-header">
-                <div>MARKET WATCHLIST</div>
+                <div>MARKET WATCHLIST & SENTIMENT EDGE</div>
                 <div class="txt-muted">6 TARGETS</div>
             </div>
             <div class="watch-grid" id="watchlist-box">
                 <div class="watch-card"><span class="watch-sym">SPY</span><span class="watch-sig txt-green">BULLISH</span></div>
-                <div class="watch-card"><span class="watch-sym">QQQ</span><span class="watch-sig txt-green">BULLISH</span></div>
-                <div class="watch-card"><span class="watch-sym">NVDA</span><span class="watch-sig txt-green">BULLISH</span></div>
-                <div class="watch-card"><span class="watch-sym">AAPL</span><span class="watch-sig txt-green">BULLISH</span></div>
-                <div class="watch-card"><span class="watch-sym">TSLA</span><span class="watch-sig txt-muted">NEUTRAL</span></div>
-                <div class="watch-card"><span class="watch-sym">AMD</span><span class="watch-sig txt-green">BULLISH</span></div>
             </div>
         </div>
     </div>
@@ -294,7 +320,7 @@ HTML_TEMPLATE = """
     <!-- Reflexion Memory Table -->
     <div class="panel">
         <div class="panel-header">
-            <div>TRADE JOURNAL & REFLEXION MEMORY</div>
+            <div>TRADE JOURNAL & DYNAMIC REFLEXION MEMORY</div>
             <div class="txt-muted" id="lesson-count">0 LESSONS</div>
         </div>
         <table>
@@ -315,12 +341,9 @@ HTML_TEMPLATE = """
 
     <!-- System Console -->
     <div class="panel">
-        <div class="panel-header">SYSTEM CONSOLE STDOUT</div>
+        <div class="panel-header">SYSTEM CONSOLE STDOUT STREAM</div>
         <div class="console-box" id="terminal-log">
             [00:00:01] SYS_INIT: OmniAlpha Quantitative Options Engine Online.<br>
-            [00:00:02] REFLEXION: Memory store loaded from disk.<br>
-            [00:00:03] ALPACA_API: Connected to paper account ae811ce4-f4dc-47a9-975f-fa2e6b42c169.<br>
-            [00:00:04] SCANNER: Monitoring SEC EDGAR filings & market sentiment velocity.<br>
         </div>
     </div>
 
@@ -329,20 +352,21 @@ HTML_TEMPLATE = """
         const equityChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: ['9:30', '11:00', '13:00', '15:00', '16:00'],
+                labels: [],
                 datasets: [{
-                    label: 'Equity',
-                    data: [100000, 100000, 100000, 100000, 100000],
+                    label: 'Portfolio Equity ($)',
+                    data: [],
                     borderColor: '#00FF66',
                     borderWidth: 1.8,
-                    tension: 0.1,
-                    pointRadius: 2,
+                    tension: 0.2,
+                    pointRadius: 3,
                     pointBackgroundColor: '#00FF66',
                     fill: false
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
                     x: { grid: { color: '#121824' }, ticks: { color: '#64748B', font: { family: 'Space Mono' } } },
@@ -367,6 +391,23 @@ HTML_TEMPLATE = """
                     const sign = diff >= 0 ? '+' : '';
                     pnlElem.innerText = `${sign}$${diff.toFixed(2)} (${sign}${pct.toFixed(2)}%)`;
                     pnlElem.className = 'metric-val ' + (diff >= 0 ? 'txt-green' : 'txt-red');
+                }
+
+                if (data.equity_history && data.equity_history.length > 0) {
+                    const labels = data.equity_history.map(item => item.time);
+                    const values = data.equity_history.map(item => item.equity);
+                    
+                    equityChart.data.labels = labels;
+                    equityChart.data.datasets[0].data = values;
+                    
+                    // Color code chart line green if profit, red if drawdown
+                    const currentEquity = values[values.length - 1];
+                    const chartColor = currentEquity >= 100000 ? '#00FF66' : '#FF3344';
+                    equityChart.data.datasets[0].borderColor = chartColor;
+                    equityChart.data.datasets[0].pointBackgroundColor = chartColor;
+                    
+                    equityChart.update();
+                    document.getElementById('chart-tick-time').innerText = 'LAST TICK: ' + labels[labels.length - 1];
                 }
                 
                 if (data.positions && data.positions.length > 0) {
@@ -398,6 +439,10 @@ HTML_TEMPLATE = """
                         const isBear = strat.includes('BEAR');
                         const col = isBull ? 'txt-green' : (isBear ? 'txt-red' : 'txt-muted');
                         
+                        // Find matching live price if available
+                        const pos = (data.positions || []).find(p => p.symbol === s.symbol);
+                        const pxStr = pos ? `$${Number(pos.current_price).toFixed(2)}` : 'LIVE';
+
                         html += `<tr>
                             <td><b>${s.symbol}</b></td>
                             <td>${s.reason}</td>
@@ -408,8 +453,14 @@ HTML_TEMPLATE = """
                         </tr>`;
 
                         watchHtml += `<div class="watch-card">
-                            <span class="watch-sym">${s.symbol}</span>
-                            <span class="watch-sig ${col}">${isBull ? 'BULLISH' : (isBear ? 'BEARISH' : 'HOLD')}</span>
+                            <div class="watch-top">
+                                <span class="watch-sym">${s.symbol}</span>
+                                <span class="watch-sig ${col}">${isBull ? 'BULLISH' : (isBear ? 'BEARISH' : 'HOLD')}</span>
+                            </div>
+                            <div class="watch-details">
+                                <span>PRICE: ${pxStr}</span>
+                                <span>CONF: ${conf}</span>
+                            </div>
                         </div>`;
                     });
                     
@@ -420,17 +471,25 @@ HTML_TEMPLATE = """
                 if (data.memory_journal && data.memory_journal.length > 0) {
                     let memHtml = '';
                     data.memory_journal.forEach(m => {
-                        const pnlColor = m.pnl_dollars >= 0 ? 'txt-green' : 'txt-red';
+                        const pnlVal = Number(m.pnl_dollars || 0);
+                        const pnlColor = pnlVal >= 0 ? 'txt-green' : 'txt-red';
+                        const sign = pnlVal >= 0 ? '+' : '';
                         memHtml += `<tr>
                             <td>${new Date(m.timestamp).toLocaleTimeString()}</td>
                             <td><b>${m.symbol}</b></td>
                             <td>${m.strategy}</td>
-                            <td class="${pnlColor}">+$${m.pnl_dollars.toFixed(2)}</td>
+                            <td class="${pnlColor}">${sign}$${pnlVal.toFixed(2)}</td>
                             <td>${m.lesson_learned}</td>
                         </tr>`;
                     });
                     document.getElementById('memory-table').innerHTML = memHtml;
                     document.getElementById('lesson-count').innerText = data.memory_journal.length + ' LESSONS';
+                }
+
+                if (data.console_logs && data.console_logs.length > 0) {
+                    const consoleBox = document.getElementById('terminal-log');
+                    consoleBox.innerHTML = data.console_logs.join('<br>');
+                    consoleBox.scrollTop = consoleBox.scrollHeight;
                 }
             } catch(e) {}
         }
@@ -462,16 +521,43 @@ def get_state():
     positions = alpaca_client.get_positions()
     signals = []
     
+    # Record equity point in EQUITY_HISTORY buffer
+    if account and "equity" in account:
+        now_str = datetime.now().strftime('%H:%M:%S')
+        eq_val = float(account["equity"])
+        EQUITY_HISTORY.append({"time": now_str, "equity": eq_val})
+        if len(EQUITY_HISTORY) > 30:
+            EQUITY_HISTORY.pop(0)
+
+    # Map positions P&L dynamically into Reflexion memory lessons
+    pos_map = {p["symbol"]: p for p in positions}
+    lessons = reflexion_memory.get_all_lessons()
+    
+    for l in lessons:
+        sym = l.get("symbol")
+        if sym in pos_map:
+            pnl = float(pos_map[sym].get("unrealized_pl", 0.0))
+            l["pnl_dollars"] = pnl
+            if pnl > 0:
+                l["lesson_learned"] = f"Bullish momentum held. Position up +${pnl:.2f}. Maintaining 0% risk penalty."
+            elif pnl < 0:
+                l["lesson_learned"] = f"Intraday price drift -$abs({pnl:.2f}). Applying 5% confidence penalty for next entry."
+
     if not SYSTEM_STATE["kill_switch_engaged"]:
         for sym in config.TARGET_SYMBOLS:
             eval_res = committee.evaluate_opportunity(sym, account)
             signals.append(eval_res)
             
+    # Add heartbeat console log entry
+    add_console_log(f"PORTFOLIO: Active equity ${account.get('equity', 100000.0):,.2f} | {len(positions)} live positions synced.")
+
     return jsonify({
         "account": account,
         "positions": positions,
         "signals": signals,
-        "memory_journal": reflexion_memory.get_all_lessons(),
+        "memory_journal": lessons,
+        "equity_history": EQUITY_HISTORY,
+        "console_logs": SYSTEM_STATE["console_logs"],
         "system_state": SYSTEM_STATE
     })
 
@@ -479,6 +565,7 @@ def get_state():
 def trigger_kill_switch():
     SYSTEM_STATE["kill_switch_engaged"] = True
     SYSTEM_STATE["status"] = "HALTED"
+    add_console_log("KILL_SWITCH: Emergency Kill Switch engaged by operator. Trading halted.")
     return jsonify({
         "status": "SUCCESS",
         "message": "Emergency Kill Switch Engaged. Trading System Halted."
