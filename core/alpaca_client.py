@@ -57,6 +57,16 @@ class AlpacaClient:
         except Exception:
             return []
 
+    def close_all_positions(self) -> Dict[str, Any]:
+        """Liquidate all open positions to free up cash/buying power."""
+        if not self.client:
+            return {"status": "FAILED", "reason": "Client not initialized"}
+        try:
+            res = self.client.close_all_positions(cancel_orders=True)
+            return {"status": "SUCCESS", "message": "All positions liquidated, cash freed."}
+        except Exception as e:
+            return {"status": "FAILED", "reason": str(e)}
+
     def submit_paper_trade(self, symbol: str, side: str = "buy", qty: int = 1) -> Dict[str, Any]:
         """Submit a live paper trading order to Alpaca."""
         if not self.client:

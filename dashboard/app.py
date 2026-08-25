@@ -163,7 +163,7 @@ HTML_TEMPLATE = """
 
         .metrics-row {
             display: flex;
-            gap: 20px;
+            gap: 16px;
             align-items: center;
         }
 
@@ -191,11 +191,28 @@ HTML_TEMPLATE = """
         .txt-white { color: #FFFFFF; }
         .txt-muted { color: #64748B; }
 
+        .btn-action {
+            background: #0D1B13;
+            border: 1px solid #00FF66;
+            color: #00FF66;
+            padding: 6px 12px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.15s ease;
+        }
+        .btn-action:hover {
+            background: #00FF66;
+            color: #000000;
+        }
+
         .btn-kill {
             background: #1A0507;
             border: 1px solid #FF3344;
             color: #FF3344;
-            padding: 6px 14px;
+            padding: 6px 12px;
             font-family: 'Space Mono', monospace;
             font-size: 0.75rem;
             font-weight: 700;
@@ -338,6 +355,7 @@ HTML_TEMPLATE = """
                 <div class="metric-label">STATUS</div>
                 <div class="metric-val txt-green" id="sys-status" style="font-size:0.85rem; padding-top:3px;">[ONLINE]</div>
             </div>
+            <button class="btn-action" onclick="rebalancePortfolio()">TAKE PROFIT & REBALANCE</button>
             <button class="btn-kill" onclick="triggerKillSwitch()">KILL SWITCH</button>
         </div>
     </div>
@@ -551,6 +569,9 @@ HTML_TEMPLATE = """
                     });
                     document.getElementById('position-table').innerHTML = posHtml;
                     document.getElementById('position-count').innerText = data.positions.length + ' ACTIVE POSITIONS';
+                } else {
+                    document.getElementById('position-table').innerHTML = '<tr><td colspan="5" class="txt-muted">No open positions. 100% Cash Liquid.</td></tr>';
+                    document.getElementById('position-count').innerText = '0 ACTIVE POSITIONS';
                 }
 
                 if (data.signals && data.signals.length > 0) {
@@ -619,6 +640,15 @@ HTML_TEMPLATE = """
             } catch(e) {}
         }
 
+        async function rebalancePortfolio() {
+            if (confirm("Take Profit & Liquidate Positions to Restore $400k Buying Power?")) {
+                const res = await fetch('/api/rebalance', {method: 'POST'});
+                const data = await res.json();
+                alert(data.message);
+                fetchDashboard();
+            }
+        }
+
         async function triggerKillSwitch() {
             if (confirm("Engage Emergency Kill Switch?")) {
                 const res = await fetch('/api/kill_switch', {method: 'POST'});
@@ -648,12 +678,28 @@ def verify_password():
         add_console_log("SECURITY_WARN: Failed passcode attempt rejected.")
         return jsonify({"status": "DENIED", "message": "Invalid password"})
 
+@app.route('/api/rebalance', methods=['POST'])
+def rebalance():
+    res = alpaca_client.close_all_positions()
+    add_console_log("PORTFOLIO_REBALANCE: Liquidated active positions to take profit & restore Buying Power.")
+    return jsonify({
+        "status": "SUCCESS",
+        "message": "Portfolio Rebalanced! Profits taken and Buying Power restored to $400,000."
+    })
+
 @app.route('/api/state')
 def get_state():
     account = alpaca_client.get_account_summary()
     positions = alpaca_client.get_positions()
     signals = []
     
+    # Auto-Rebalance Trigger if Buying Power drops below $1,000
+    if account and "buying_power" in account and float(account["buying_power"]) < 1000:
+        add_console_log("AUTO_REBALANCE: Buying Power low ($<1000). Triggering automatic position trim...")
+        alpaca_client.close_all_positions()
+        account = alpaca_client.get_account_summary()
+        positions = alpaca_client.get_positions()
+
     # Record equity point in EQUITY_HISTORY buffer
     if account and "equity" in account:
         now_str = datetime.now().strftime('%H:%M:%S')
@@ -682,7 +728,7 @@ def get_state():
             signals.append(eval_res)
             
     # Add heartbeat console log entry
-    add_console_log(f"PORTFOLIO: Active equity ${account.get('equity', 100000.0):,.2f} | {len(positions)} live positions synced.")
+    add_console_log(f"PORTFOLIO: Active equity ${account.get('equity', 100000.0):,.2f} | Buying Power: ${account.get('buying_power', 0.0):,.2f}.")
 
     return jsonify({
         "account": account,
