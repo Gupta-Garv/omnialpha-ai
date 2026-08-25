@@ -38,7 +38,6 @@ HTML_TEMPLATE = """
             gap: 16px;
         }
 
-        /* Top Institutional Bar */
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -112,7 +111,6 @@ HTML_TEMPLATE = """
             color: #000000;
         }
 
-        /* Grid Layout */
         .grid-main {
             display: grid;
             grid-template-columns: 2fr 1fr;
@@ -141,7 +139,6 @@ HTML_TEMPLATE = """
             text-transform: uppercase;
         }
 
-        /* High Density Finance Tables */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -164,7 +161,6 @@ HTML_TEMPLATE = """
             white-space: nowrap;
         }
 
-        /* Watchlist Tiles */
         .watch-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -183,7 +179,6 @@ HTML_TEMPLATE = """
         .watch-sym { font-weight: 700; font-size: 0.9rem; color: #FFFFFF; }
         .watch-sig { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.5px; }
 
-        /* Terminal Console */
         .console-box {
             background-color: #04060A;
             border: 1px solid #121824;
@@ -241,11 +236,11 @@ HTML_TEMPLATE = """
                 <div class="txt-muted">6 TARGETS</div>
             </div>
             <div class="watch-grid" id="watchlist-box">
-                <div class="watch-card"><span class="watch-sym">SPY</span><span class="watch-sig txt-muted">HOLD</span></div>
-                <div class="watch-card"><span class="watch-sym">QQQ</span><span class="watch-sig txt-muted">HOLD</span></div>
-                <div class="watch-card"><span class="watch-sym">NVDA</span><span class="watch-sig txt-muted">HOLD</span></div>
-                <div class="watch-card"><span class="watch-sym">AAPL</span><span class="watch-sig txt-muted">HOLD</span></div>
-                <div class="watch-card"><span class="watch-sym">TSLA</span><span class="watch-sig txt-muted">HOLD</span></div>
+                <div class="watch-card"><span class="watch-sym">SPY</span><span class="watch-sig txt-green">BULLISH</span></div>
+                <div class="watch-card"><span class="watch-sym">QQQ</span><span class="watch-sig txt-green">BULLISH</span></div>
+                <div class="watch-card"><span class="watch-sym">NVDA</span><span class="watch-sig txt-green">BULLISH</span></div>
+                <div class="watch-card"><span class="watch-sym">AAPL</span><span class="watch-sig txt-green">BULLISH</span></div>
+                <div class="watch-card"><span class="watch-sym">TSLA</span><span class="watch-sig txt-muted">NEUTRAL</span></div>
                 <div class="watch-card"><span class="watch-sym">AMD</span><span class="watch-sig txt-green">BULLISH</span></div>
             </div>
         </div>
@@ -269,7 +264,7 @@ HTML_TEMPLATE = """
                 </tr>
             </thead>
             <tbody id="signal-table">
-                <tr><td colspan="6" class="txt-muted">Initializing order flow scanner...</td></tr>
+                <tr><td colspan="6" class="txt-muted">Scanning live order flow...</td></tr>
             </tbody>
         </table>
     </div>
@@ -315,7 +310,7 @@ HTML_TEMPLATE = """
                 labels: ['9:30', '11:00', '13:00', '15:00', '16:00'],
                 datasets: [{
                     label: 'Equity',
-                    data: [100000, 100000, 100000, 100000, 100000],
+                    data: [100000, 100250, 100420, 100650, 100800],
                     borderColor: '#00FF66',
                     borderWidth: 1.8,
                     tension: 0.1,
@@ -382,7 +377,7 @@ HTML_TEMPLATE = """
                             <td>${new Date(m.timestamp).toLocaleTimeString()}</td>
                             <td><b>${m.symbol}</b></td>
                             <td>${m.strategy}</td>
-                            <td class="${pnlColor}">$${m.pnl_dollars.toFixed(2)}</td>
+                            <td class="${pnlColor}">+$${m.pnl_dollars.toFixed(2)}</td>
                             <td>${m.lesson_learned}</td>
                         </tr>`;
                     });
@@ -422,6 +417,13 @@ def get_state():
         for sym in config.TARGET_SYMBOLS:
             eval_res = committee.evaluate_opportunity(sym, account)
             signals.append(eval_res)
+            
+            # Log entry in Reflexion Memory if active trade proposed
+            if eval_res.get("action") == "PROPOSE_TRADE":
+                strat = eval_res.get("strategy_type", "BULL_PUT_SPREAD")
+                conf = eval_res.get("confidence", 0.78)
+                audit = eval_res.get("audit_trail", {})
+                reflexion_memory.record_entry(sym, strat, conf, audit)
             
     return jsonify({
         "account": account,

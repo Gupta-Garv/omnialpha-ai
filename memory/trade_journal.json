@@ -1,0 +1,104 @@
+[
+  {
+    "id": "TRADE_1_SPY_1787677719",
+    "timestamp": "2026-08-25T22:38:39.786232",
+    "symbol": "SPY",
+    "strategy": "BULL_PUT_SPREAD",
+    "confidence": 0.78,
+    "audit_trail": {
+      "sentiment_signal": "BULLISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BULL_PUT_SPREAD based on BULLISH_VELOCITY velocity."
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_2_QQQ_1787677727",
+    "timestamp": "2026-08-25T22:38:47.699998",
+    "symbol": "QQQ",
+    "strategy": "BULL_PUT_SPREAD",
+    "confidence": 0.78,
+    "audit_trail": {
+      "sentiment_signal": "BULLISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BULL_PUT_SPREAD based on BULLISH_VELOCITY velocity."
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_3_NVDA_1787677731",
+    "timestamp": "2026-08-25T22:38:51.516464",
+    "symbol": "NVDA",
+    "strategy": "BULL_PUT_SPREAD",
+    "confidence": 0.78,
+    "audit_trail": {
+      "sentiment_signal": "BULLISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BULL_PUT_SPREAD based on BULLISH_VELOCITY velocity."
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_4_AAPL_1787677736",
+    "timestamp": "2026-08-25T22:38:56.057560",
+    "symbol": "AAPL",
+    "strategy": "BULL_PUT_SPREAD",
+    "confidence": 0.78,
+    "audit_trail": {
+      "sentiment_signal": "BULLISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BULL_PUT_SPREAD based on BULLISH_VELOCITY velocity."
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_5_TSLA_1787677744",
+    "timestamp": "2026-08-25T22:39:04.976847",
+    "symbol": "TSLA",
+    "strategy": "BEAR_CALL_SPREAD",
+    "confidence": 0.7,
+    "audit_trail": {
+      "sentiment_signal": "NEUTRAL",
+      "insider_activity": false,
+      "past_lessons_applied": [],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BEAR_CALL_SPREAD based on NEUTRAL velocity."
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_6_AMD_1787677747",
+    "timestamp": "2026-08-25T22:39:07.908834",
+    "symbol": "AMD",
+    "strategy": "BULL_PUT_SPREAD",
+    "confidence": 0.78,
+    "audit_trail": {
+      "sentiment_signal": "BULLISH_VELOCITY",
+      "insider_activity": false,
+      "past_lessons_applied": [],
+      "sample_option_symbol": "A260918C00055000",
+      "rationale": "High probability BULL_PUT_SPREAD based on BULLISH_VELOCITY velocity."
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
+  }
+]
