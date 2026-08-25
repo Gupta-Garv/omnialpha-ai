@@ -21,7 +21,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OMNIALPHA AI // QUANTITATIVE OPTIONS DESK</title>
+    <title>OmniAlpha AI // QUANTITATIVE OPTIONS DESK</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -66,7 +66,7 @@ HTML_TEMPLATE = """
 
         .metrics-row {
             display: flex;
-            gap: 24px;
+            gap: 20px;
             align-items: center;
         }
 
@@ -84,7 +84,7 @@ HTML_TEMPLATE = """
         }
 
         .metric-val {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             letter-spacing: 0.5px;
         }
@@ -202,15 +202,15 @@ HTML_TEMPLATE = """
         <div class="metrics-row">
             <div class="metric-item">
                 <div class="metric-label">PAPER EQUITY</div>
-                <div class="metric-val txt-green" id="equity">$100,000.00</div>
+                <div class="metric-val txt-white" id="equity">$100,000.00</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">NET PROFIT / LOSS</div>
+                <div class="metric-val txt-green" id="net-pnl">$0.00 (+0.00%)</div>
             </div>
             <div class="metric-item">
                 <div class="metric-label">BUYING POWER</div>
                 <div class="metric-val txt-white" id="buying_power">$400,000.00</div>
-            </div>
-            <div class="metric-item">
-                <div class="metric-label">RISK GUARD</div>
-                <div class="metric-val txt-green">2.0% MAX</div>
             </div>
             <div class="metric-item">
                 <div class="metric-label">STATUS</div>
@@ -244,6 +244,28 @@ HTML_TEMPLATE = """
                 <div class="watch-card"><span class="watch-sym">AMD</span><span class="watch-sig txt-green">BULLISH</span></div>
             </div>
         </div>
+    </div>
+
+    <!-- Active Open Positions Table -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>LIVE OPEN POSITIONS & UNREALIZED P&L</div>
+            <div class="txt-muted" id="position-count">0 ACTIVE POSITIONS</div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ASSET</th>
+                    <th>QTY</th>
+                    <th>CURRENT PRICE</th>
+                    <th>MARKET VALUE</th>
+                    <th>UNREALIZED P&L ($)</th>
+                </tr>
+            </thead>
+            <tbody id="position-table">
+                <tr><td colspan="5" class="txt-muted">Fetching live Alpaca positions...</td></tr>
+            </tbody>
+        </table>
     </div>
 
     <!-- Signal Feed Table -->
@@ -310,7 +332,7 @@ HTML_TEMPLATE = """
                 labels: ['9:30', '11:00', '13:00', '15:00', '16:00'],
                 datasets: [{
                     label: 'Equity',
-                    data: [100000, 100250, 100420, 100650, 100800],
+                    data: [100000, 100000, 100000, 100000, 100000],
                     borderColor: '#00FF66',
                     borderWidth: 1.8,
                     tension: 0.1,
@@ -335,10 +357,36 @@ HTML_TEMPLATE = """
                 const data = await res.json();
                 
                 if (data.account && !data.account.error) {
-                    document.getElementById('equity').innerText = '$' + Number(data.account.equity).toLocaleString(undefined, {minimumFractionDigits: 2});
+                    const eq = Number(data.account.equity);
+                    document.getElementById('equity').innerText = '$' + eq.toLocaleString(undefined, {minimumFractionDigits: 2});
                     document.getElementById('buying_power').innerText = '$' + Number(data.account.buying_power).toLocaleString(undefined, {minimumFractionDigits: 2});
+                    
+                    const diff = eq - 100000.0;
+                    const pct = (diff / 100000.0) * 100;
+                    const pnlElem = document.getElementById('net-pnl');
+                    const sign = diff >= 0 ? '+' : '';
+                    pnlElem.innerText = `${sign}$${diff.toFixed(2)} (${sign}${pct.toFixed(2)}%)`;
+                    pnlElem.className = 'metric-val ' + (diff >= 0 ? 'txt-green' : 'txt-red');
                 }
                 
+                if (data.positions && data.positions.length > 0) {
+                    let posHtml = '';
+                    data.positions.forEach(p => {
+                        const pnl = Number(p.unrealized_pl || 0);
+                        const col = pnl >= 0 ? 'txt-green' : 'txt-red';
+                        const sign = pnl >= 0 ? '+' : '';
+                        posHtml += `<tr>
+                            <td><b>${p.symbol}</b></td>
+                            <td>${p.qty}</td>
+                            <td>$${Number(p.current_price).toFixed(2)}</td>
+                            <td>$${Number(p.market_value).toFixed(2)}</td>
+                            <td class="${col}">${sign}$${pnl.toFixed(2)}</td>
+                        </tr>`;
+                    });
+                    document.getElementById('position-table').innerHTML = posHtml;
+                    document.getElementById('position-count').innerText = data.positions.length + ' ACTIVE POSITIONS';
+                }
+
                 if (data.signals && data.signals.length > 0) {
                     let html = '';
                     let watchHtml = '';
@@ -411,6 +459,7 @@ def index():
 @app.route('/api/state')
 def get_state():
     account = alpaca_client.get_account_summary()
+    positions = alpaca_client.get_positions()
     signals = []
     
     if not SYSTEM_STATE["kill_switch_engaged"]:
@@ -418,20 +467,9 @@ def get_state():
             eval_res = committee.evaluate_opportunity(sym, account)
             signals.append(eval_res)
             
-            # Log entry & submit live paper trade order to Alpaca when proposed
-            if eval_res.get("action") == "PROPOSE_TRADE":
-                strat = eval_res.get("strategy_type", "BULL_PUT_SPREAD")
-                conf = eval_res.get("confidence", 0.78)
-                audit = eval_res.get("audit_trail", {})
-                
-                # Execute paper trade directly on Alpaca API
-                trade_res = alpaca_client.submit_paper_trade(sym, side="buy", qty=1)
-                audit["alpaca_order_id"] = trade_res.get("order_id", "SIMULATED")
-                
-                reflexion_memory.record_entry(sym, strat, conf, audit)
-            
     return jsonify({
         "account": account,
+        "positions": positions,
         "signals": signals,
         "memory_journal": reflexion_memory.get_all_lessons(),
         "system_state": SYSTEM_STATE

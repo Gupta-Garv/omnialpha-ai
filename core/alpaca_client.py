@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest, GetOptionContractsRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, AssetClass
@@ -38,12 +38,22 @@ class AlpacaClient:
         except Exception as e:
             return {"error": str(e)}
 
-    def get_positions(self):
-        """Fetch open paper trading positions."""
+    def get_positions(self) -> List[Dict[str, Any]]:
+        """Fetch open paper trading positions formatted for JSON serializability."""
         if not self.client:
             return []
         try:
-            return self.client.get_all_positions()
+            raw_pos = self.client.get_all_positions()
+            formatted = []
+            for p in raw_pos:
+                formatted.append({
+                    "symbol": p.symbol,
+                    "qty": str(p.qty),
+                    "current_price": float(p.current_price) if p.current_price else 0.0,
+                    "market_value": float(p.market_value) if p.market_value else 0.0,
+                    "unrealized_pl": float(p.unrealized_pl) if p.unrealized_pl else 0.0
+                })
+            return formatted
         except Exception:
             return []
 
