@@ -5,6 +5,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from flask import Flask, render_template_string, jsonify, request
 from core.alpaca_client import alpaca_client
 from brain.committee import committee
+from memory.journal import reflexion_memory
 from config import config
 
 app = Flask(__name__)
@@ -30,6 +31,7 @@ HTML_TEMPLATE = """
             --accent: #3b82f6;
             --green: #10b981;
             --red: #ef4444;
+            --purple: #8b5cf6;
             --text: #f9fafb;
             --subtext: #9ca3af;
         }
@@ -66,7 +68,7 @@ HTML_TEMPLATE = """
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
             margin-bottom: 24px;
         }
@@ -85,10 +87,11 @@ HTML_TEMPLATE = """
             margin-bottom: 8px;
         }
         .card-value {
-            font-size: 1.8rem;
+            font-size: 1.7rem;
             font-weight: 700;
         }
         .green { color: var(--green); }
+        .purple { color: var(--purple); }
         .red { color: var(--red); }
         .kill-btn {
             background-color: #991b1b;
@@ -132,7 +135,7 @@ HTML_TEMPLATE = """
     <div class="header">
         <div>
             <h1 style="margin: 0; font-size: 1.4rem;">OmniAlpha AI <span class="badge">PRE-CATALYST AGENT</span></h1>
-            <p style="margin: 4px 0 0 0; color: var(--subtext); font-size: 0.85rem;">Alpaca Options Swarm • Real-Time Command Center</p>
+            <p style="margin: 4px 0 0 0; color: var(--subtext); font-size: 0.85rem;">Alpaca Options Swarm • Self-Learning Command Center</p>
         </div>
         <div style="display: flex; gap: 12px; align-items: center;">
             <span class="status-badge" id="sys-status">OPERATIONAL</span>
@@ -155,8 +158,8 @@ HTML_TEMPLATE = """
             <div class="card-value green">ACTIVE (2.0% CAP)</div>
         </div>
         <div class="card">
-            <div class="card-label">Execution Engine</div>
-            <div class="card-value" style="color: #3b82f6;">ALPACA SDK / CLI</div>
+            <div class="card-label">Reflexion Memory Engine</div>
+            <div class="card-value purple" id="lesson-count">LEARNING ACTIVE</div>
         </div>
     </div>
 
@@ -185,11 +188,31 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
+    <!-- Reflexion Self-Learning Journal Table -->
+    <div class="card" style="margin-bottom: 24px;">
+        <h3 style="margin-top:0; font-size: 1.0rem; color: var(--purple);">🧠 Self-Learning Trade Memory & Post-Mortems</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Underlying</th>
+                    <th>Strategy</th>
+                    <th>Outcome P&L</th>
+                    <th>Post-Mortem Lesson Learned</th>
+                </tr>
+            </thead>
+            <tbody id="memory-table">
+                <tr><td colspan="5" style="color: var(--subtext);">Agent is recording live trade outcomes & learning post-mortems...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
     <!-- Bottom AI Thought Log Terminal -->
-    <div class="card" style="margin-top: 16px;">
+    <div class="card">
         <h3 style="margin-top:0; font-size: 1.0rem;">AI Committee Thought Audit Log</h3>
         <div class="terminal-box" id="terminal-log">
             [SYS_INIT] OmniAlpha Multi-Agent Swarm Initialized...<br>
+            [REFLEXION] Reflexion Self-Learning Memory Engine Loaded...<br>
             [CONNECT] Connected to Alpaca Paper Trading Account (ae811ce4-f4dc-47a9-975f-fa2e6b42c169)...<br>
             [SCAN] Scanning SEC EDGAR Form 4 feeds & Google News Sentiment Velocity...<br>
             [SIGNAL] AMD: Bullish Sentiment Velocity (Score 4:0) -> Formulating Bull Put Spread ($250 Max Risk)...<br>
@@ -198,7 +221,6 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
-        // Setup Chart.js Equity Chart
         const ctx = document.getElementById('equityChart').getContext('2d');
         const equityChart = new Chart(ctx, {
             type: 'line',
@@ -247,6 +269,22 @@ HTML_TEMPLATE = """
                     });
                     document.getElementById('signal-table').innerHTML = html;
                 }
+
+                if (data.memory_journal && data.memory_journal.length > 0) {
+                    let memHtml = '';
+                    data.memory_journal.forEach(m => {
+                        const pnlColor = m.pnl_dollars >= 0 ? '#10b981' : '#ef4444';
+                        memHtml += `<tr>
+                            <td>${new Date(m.timestamp).toLocaleTimeString()}</td>
+                            <td><b>${m.symbol}</b></td>
+                            <td>${m.strategy}</td>
+                            <td><span style="color: ${pnlColor}">$${m.pnl_dollars.toFixed(2)}</span></td>
+                            <td>${m.lesson_learned}</td>
+                        </tr>`;
+                    });
+                    document.getElementById('memory-table').innerHTML = memHtml;
+                    document.getElementById('lesson-count').innerText = data.memory_journal.length + ' LESSONS';
+                }
             } catch(e) {}
         }
 
@@ -285,6 +323,7 @@ def get_state():
     return jsonify({
         "account": account,
         "signals": signals,
+        "memory_journal": reflexion_memory.get_all_lessons(),
         "system_state": SYSTEM_STATE
     })
 

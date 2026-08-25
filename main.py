@@ -7,6 +7,7 @@ import threading
 from config import config
 from core.alpaca_client import alpaca_client
 from brain.committee import committee
+from memory.journal import reflexion_memory
 from dashboard.app import app
 
 def run_dashboard_server():
@@ -15,7 +16,7 @@ def run_dashboard_server():
 
 def main_loop():
     print("=" * 60)
-    print("🚀 OmniAlpha AI — Autonomous Paper Trading Agent Initialized")
+    print("🚀 OmniAlpha AI — Autonomous Paper Trading Agent (Reflexion Memory Active)")
     print(f"Target Underlyings: {', '.join(config.TARGET_SYMBOLS)}")
     print(f"Paper Mode: {config.ALPACA_PAPER} | Base URL: {config.BASE_URL}")
     print("=" * 60)
@@ -33,7 +34,7 @@ def main_loop():
         print(f"Connected Account Equity: ${account.get('equity', 0):,.2f}")
         print(f"Buying Power: ${account.get('buying_power', 0):,.2f}")
 
-    print("\n[LIVE MONITORING LOOP ACTIVE] Scanning signals & executing paper trades...")
+    print("\n[LIVE MONITORING LOOP ACTIVE] Scanning signals & executing paper trades with Self-Learning Memory...")
     
     try:
         scan_cycle = 1
@@ -48,6 +49,13 @@ def main_loop():
                 
                 if action == "PROPOSE_TRADE":
                     strat = decision.get("strategy_type")
+                    conf = decision.get("confidence", 0.75)
+                    audit = decision.get("audit_trail", {})
+                    
+                    # Record entry in Reflexion Memory
+                    entry_id = reflexion_memory.record_entry(symbol, strat, conf, audit)
+                    print(f"🧠 REFLEXION MEMORY LOGGED: {entry_id}")
+                    
                     print(f"⚡ EXECUTING LIVE PAPER ORDER for {symbol} ({strat})...")
                     exec_res = alpaca_client.submit_paper_trade(symbol, side="buy", qty=1)
                     print(f"    Result: {exec_res}")
