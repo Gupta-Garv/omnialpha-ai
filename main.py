@@ -40,6 +40,11 @@ def main_loop():
         scan_cycle = 1
         while True:
             print(f"\n--- [SCAN CYCLE #{scan_cycle}] ---")
+            
+            # Fetch current open positions to enforce position capping
+            open_positions = alpaca_client.get_positions()
+            existing_symbols = [p.get("symbol") for p in open_positions]
+            
             for symbol in config.TARGET_SYMBOLS:
                 decision = committee.evaluate_opportunity(symbol, account)
                 action = decision.get("action")
@@ -47,7 +52,8 @@ def main_loop():
                 
                 print(f"[{symbol}] Action: {action} | Reason: {reason}")
                 
-                if action == "PROPOSE_TRADE":
+                # Only execute new trade if symbol is NOT already in open positions
+                if action == "PROPOSE_TRADE" and symbol not in existing_symbols:
                     strat = decision.get("strategy_type")
                     conf = decision.get("confidence", 0.75)
                     audit = decision.get("audit_trail", {})
@@ -59,6 +65,8 @@ def main_loop():
                     print(f"⚡ EXECUTING LIVE PAPER ORDER for {symbol} ({strat})...")
                     exec_res = alpaca_client.submit_paper_trade(symbol, side="buy", qty=1)
                     print(f"    Result: {exec_res}")
+                elif symbol in existing_symbols:
+                    print(f"    [POSITION CAP] Active position exists for {symbol}. Holding current trade.")
 
             scan_cycle += 1
             print(f"\nSleeping 30 seconds before next scan cycle... (Press Ctrl+C to stop)")
