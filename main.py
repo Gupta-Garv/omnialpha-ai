@@ -4,6 +4,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import time
 import threading
+import requests
 from config import config
 from core.alpaca_client import alpaca_client
 from brain.committee import committee
@@ -13,6 +14,16 @@ from dashboard.app import app
 def run_dashboard_server():
     """Run Flask Web Dashboard in background thread."""
     app.run(host="0.0.0.0", port=config.PORT, debug=False, use_reloader=False)
+
+def keep_alive_ping():
+    """Periodically ping the web server every 5 minutes to prevent cloud sleeping."""
+    url = "https://omnialpha-ai.onrender.com"
+    while True:
+        try:
+            time.sleep(300)
+            requests.get(url, timeout=10)
+        except Exception:
+            pass
 
 def main_loop():
     print("=" * 60)
@@ -25,6 +36,10 @@ def main_loop():
     print(f"\n🌐 Starting Visual Web Dashboard at http://localhost:{config.PORT}...")
     dash_thread = threading.Thread(target=run_dashboard_server, daemon=True)
     dash_thread.start()
+
+    # Start Keep-Alive Self-Ping thread
+    ping_thread = threading.Thread(target=keep_alive_ping, daemon=True)
+    ping_thread.start()
     time.sleep(1.5)
 
     account = alpaca_client.get_account_summary()
