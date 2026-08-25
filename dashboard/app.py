@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from flask import Flask, render_template_string, jsonify
+from flask import Flask, render_template_string, jsonify, request
 from core.alpaca_client import alpaca_client
 from brain.committee import committee
 from memory.journal import reflexion_memory
@@ -18,7 +18,7 @@ SYSTEM_STATE = {
         f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: OmniAlpha Quantitative Options Engine Online.",
         f"[{datetime.now().strftime('%H:%M:%S')}] REFLEXION: Self-Learning Memory Store initialized from disk.",
         f"[{datetime.now().strftime('%H:%M:%S')}] ALPACA_API: Connected to paper account ae811ce4-f4dc-47a9-975f-fa2e6b42c169.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] SCANNER: Monitoring SEC EDGAR filings & market sentiment velocity."
+        f"[{datetime.now().strftime('%H:%M:%S')}] SECURITY: Password Authentication Gate Active."
     ]
 }
 
@@ -53,6 +53,86 @@ HTML_TEMPLATE = """
             display: flex;
             flex-direction: column;
             gap: 16px;
+        }
+
+        /* Full Screen Security Overlay */
+        #auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .auth-card {
+            background: #090D14;
+            border: 1px solid #1E2638;
+            border-top: 3px solid #00FF66;
+            padding: 32px;
+            width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .auth-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: 1.5px;
+            text-align: center;
+        }
+
+        .auth-sub {
+            font-size: 0.7rem;
+            color: #64748B;
+            text-align: center;
+        }
+
+        .auth-input {
+            background: #04060A;
+            border: 1px solid #1E2638;
+            color: #00FF66;
+            padding: 12px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            outline: none;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        .auth-input:focus {
+            border-color: #00FF66;
+        }
+
+        .auth-btn {
+            background: #00FF66;
+            color: #000000;
+            border: none;
+            padding: 12px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1.5px;
+            transition: all 0.15s ease;
+        }
+        .auth-btn:hover {
+            background: #00CC52;
+        }
+
+        .auth-err {
+            font-size: 0.7rem;
+            color: #FF3344;
+            text-align: center;
+            min-height: 16px;
         }
 
         .top-bar {
@@ -224,6 +304,17 @@ HTML_TEMPLATE = """
 </head>
 <body>
 
+    <!-- Security Authentication Lock Screen Overlay -->
+    <div id="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-title">OMNIALPHA DESK // SECURITY GATE</div>
+            <div class="auth-sub">RESTRICTED OPERATOR ACCESS</div>
+            <input type="password" id="pass-input" class="auth-input" placeholder="ENTER PASSCODE" onkeyup="handleKey(event)" autofocus>
+            <button class="auth-btn" onclick="authenticateUser()">UNLOCK DECK</button>
+            <div class="auth-err" id="auth-err"></div>
+        </div>
+    </div>
+
     <!-- Header Bar -->
     <div class="top-bar">
         <div class="bar-title">
@@ -348,6 +439,40 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
+        // Password Authentication Gate Logic
+        async function authenticateUser() {
+            const pass = document.getElementById('pass-input').value;
+            const res = await fetch('/api/verify_pass', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password: pass})
+            });
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
+                document.getElementById('auth-overlay').style.display = 'none';
+                sessionStorage.setItem('omni_authenticated', 'true');
+                fetchDashboard();
+                setInterval(fetchDashboard, 3000);
+            } else {
+                document.getElementById('auth-err').innerText = 'ACCESS DENIED // INVALID CLEARANCE';
+            }
+        }
+
+        function handleKey(e) {
+            if (e.key === 'Enter') {
+                authenticateUser();
+            }
+        }
+
+        // Auto-check authentication state
+        window.onload = function() {
+            if (sessionStorage.getItem('omni_authenticated') === 'true') {
+                document.getElementById('auth-overlay').style.display = 'none';
+                fetchDashboard();
+                setInterval(fetchDashboard, 3000);
+            }
+        };
+
         const ctx = document.getElementById('equityChart').getContext('2d');
         const equityChart = new Chart(ctx, {
             type: 'line',
@@ -503,9 +628,6 @@ HTML_TEMPLATE = """
                 alert(data.message);
             }
         }
-
-        setInterval(fetchDashboard, 3000);
-        fetchDashboard();
     </script>
 </body>
 </html>
@@ -514,6 +636,17 @@ HTML_TEMPLATE = """
 @app.route('/')
 def index():
     return render_template_string(HTML_TEMPLATE)
+
+@app.route('/api/verify_pass', methods=['POST'])
+def verify_password():
+    data = request.get_json() or {}
+    pwd = data.get("password", "")
+    if pwd == "Allowme123":
+        add_console_log("SECURITY: Operator successfully authenticated.")
+        return jsonify({"status": "SUCCESS"})
+    else:
+        add_console_log("SECURITY_WARN: Failed passcode attempt rejected.")
+        return jsonify({"status": "DENIED", "message": "Invalid password"})
 
 @app.route('/api/state')
 def get_state():
@@ -541,7 +674,7 @@ def get_state():
             if pnl > 0:
                 l["lesson_learned"] = f"Bullish momentum held. Position up +${pnl:.2f}. Maintaining 0% risk penalty."
             elif pnl < 0:
-                l["lesson_learned"] = f"Intraday price drift -$abs({pnl:.2f}). Applying 5% confidence penalty for next entry."
+                l["lesson_learned"] = f"Intraday price drift -${abs(pnl):.2f}. Applying 5% confidence penalty for next entry."
 
     if not SYSTEM_STATE["kill_switch_engaged"]:
         for sym in config.TARGET_SYMBOLS:
