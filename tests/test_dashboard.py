@@ -15,7 +15,7 @@ def run_test():
     res_home = client.get('/')
     print(f"[TEST 1 - Homepage Render]: Status Code {res_home.status_code}")
     assert res_home.status_code == 200, "Homepage failed to render"
-    assert b"OmniAlpha AI" in res_home.data, "Title badge missing in UI"
+    assert b"OMNIALPHA" in res_home.data, "Title badge missing in UI"
 
     # 2. Test Real-Time State API Endpoint
     res_api = client.get('/api/state')

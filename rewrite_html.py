@@ -1,57 +1,24 @@
-import sys
-import random
-import time
-import math
-import threading
-from pathlib import Path
-from datetime import datetime
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import os
 
-from flask import Flask, render_template_string, jsonify, request
-from core.alpaca_client import alpaca_client
-from brain.committee import committee
-from brain.exit_predictor import exit_predictor
-from memory.journal import reflexion_memory
-from signals.grey_market import grey_market_scanner
-from config import config
+# Read current app.py
+with open("dashboard/app.py", "r") as f:
+    lines = f.readlines()
 
-app = Flask(__name__)
+# Find the indices of HTML_TEMPLATE start and end
+start_idx = -1
+end_idx = -1
+for i, line in enumerate(lines):
+    if 'HTML_TEMPLATE = """' in line:
+        start_idx = i
+    if start_idx != -1 and i > start_idx and '"""' in line and line.strip() == '"""':
+        end_idx = i
+        break
 
-# Baseline underlying market prices for 24/7 live tick calculations
-BASE_PRICES = {
-    "SPY": 512.40,
-    "QQQ": 438.10,
-    "NVDA": 128.50,
-    "AAPL": 224.30,
-    "TSLA": 220.10,
-    "AMD": 148.20
-}
+if start_idx != -1 and end_idx != -1:
+    pre_html = "".join(lines[:start_idx])
+    post_html = "".join(lines[end_idx+1:])
 
-
-
-SYSTEM_STATE = {
-    "kill_switch_engaged": False,
-    "status": "OPERATIONAL",
-    "realized_banked_profit": 139.96,  # Bound to real Alpaca paper metrics + active profit harvesting
-    "console_logs": [
-        f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: Bloomberg Professional Terminal Feed Online.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] ALPACA_SYNC: Realized Banked Profit strictly synchronized with Alpaca API.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] MICRO_TICK_ENGINE: 24/7 Intraday Option Delta Streaming Active.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] GEMINI_AI: Deep Quantitative Reasoning & Exit Predictor Active."
-    ]
-}
-
-EQUITY_HISTORY = []
-
-def add_console_log(msg: str):
-    """Add a timestamped entry to the rolling system console log."""
-    ts = datetime.now().strftime('%H:%M:%S')
-    entry = f"[{ts}] {msg}"
-    SYSTEM_STATE["console_logs"].append(entry)
-    if len(SYSTEM_STATE["console_logs"]) > 50:
-        SYSTEM_STATE["console_logs"].pop(0)
-
-HTML_TEMPLATE = """
+    new_html = '''HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -519,112 +486,9 @@ HTML_TEMPLATE = """
 </body>
 </html>
 """
-
-@app.route('/')
-def index():
-    return render_template_string(HTML_TEMPLATE)
-
-@app.route('/api/verify_pass', methods=['POST'])
-def verify_password():
-    data = request.get_json() or {}
-    pwd = data.get("password", "")
-    if pwd == "Allowme123":
-        add_console_log("SECURITY: Operator successfully authenticated.")
-        return jsonify({"status": "SUCCESS"})
-    else:
-        add_console_log("SECURITY_WARN: Failed passcode attempt rejected.")
-        return jsonify({"status": "DENIED", "message": "Invalid password"})
-
-@app.route('/api/rebalance', methods=['POST'])
-def rebalance():
-    res = alpaca_client.close_all_positions()
-    SYSTEM_STATE["realized_banked_profit"] += 250.0
-    add_console_log("PORTFOLIO_REBALANCE: Banked open position profits to Secured Cash Reserve.")
-    return jsonify({
-        "status": "SUCCESS",
-        "message": "Profits Banked! All open gains locked into Secured Cash Reserve."
-    })
-
-@app.route('/api/state')
-def get_state():
-    account = alpaca_client.get_account_summary()
-    positions = alpaca_client.get_positions()
-    signals = []
-    grey_radar = []
-    
-    raw_equity = float(account.get("equity", 100139.96)) if account else 100139.96
-    simulated_equity = raw_equity
-
-    total_floating_pnl = 0.0
-    
-    for p in positions:
-        total_floating_pnl += float(p.get("unrealized_pl", 0.0))
-
-    # Bind Secured Cash Profit to real account metrics + active drift
-    total_account_gain = raw_equity - 100000.0
-    realized_banked_profit = max(139.96, total_account_gain)
-    SYSTEM_STATE["realized_banked_profit"] = round(realized_banked_profit, 2)
-
-    for sym in config.TARGET_SYMBOLS:
-        grey_data = grey_market_scanner.analyze_grey_market_signals(sym)
-        grey_radar.append({
-            "symbol": sym,
-            "dark_pool_sweep": grey_data.get("dark_pool_sweep"),
-            "institutional_flow": grey_data.get("institutional_flow"),
-            "sec_filing_event": grey_data.get("sec_filing_event"),
-            "conviction_score": grey_data.get("conviction_score")
-        })
-
-    # Append dynamic live equity point to EQUITY_HISTORY buffer
-    now_str = datetime.now().strftime('%H:%M:%S')
-    EQUITY_HISTORY.append({"time": now_str, "equity": round(simulated_equity, 2)})
-    if len(EQUITY_HISTORY) > 30:
-        EQUITY_HISTORY.pop(0)
-
-    # Map positions P&L dynamically into Reflexion memory lessons
-    pos_map = {p["symbol"]: p for p in positions}
-    lessons = reflexion_memory.get_all_lessons()
-    
-    for l in lessons:
-        sym = l.get("symbol")
-        if sym in pos_map:
-            pnl = float(pos_map[sym].get("unrealized_pl", 0.0))
-            l["pnl_dollars"] = pnl
-            if pnl > 0:
-                l["lesson_learned"] = f"Bullish momentum held. Position up +${pnl:.2f}. Maintaining 0% risk penalty."
-            elif pnl < 0:
-                l["lesson_learned"] = f"Intraday price drift -${abs(pnl):.2f}. Applying 5% confidence penalty for next entry."
-
-    if not SYSTEM_STATE["kill_switch_engaged"]:
-        for sym in config.TARGET_SYMBOLS:
-            eval_res = committee.evaluate_opportunity(sym, account)
-            signals.append(eval_res)
-
-    if account:
-        account["equity"] = round(simulated_equity, 2)
-
-    return jsonify({
-        "account": account,
-        "positions": positions,
-        "signals": signals,
-        "grey_market_radar": grey_radar,
-        "base_prices": BASE_PRICES,
-        "total_floating_pnl": round(total_floating_pnl, 2),
-        "memory_journal": lessons,
-        "equity_history": EQUITY_HISTORY,
-        "console_logs": SYSTEM_STATE["console_logs"],
-        "system_state": SYSTEM_STATE
-    })
-
-@app.route('/api/kill_switch', methods=['POST'])
-def trigger_kill_switch():
-    SYSTEM_STATE["kill_switch_engaged"] = True
-    SYSTEM_STATE["status"] = "HALTED"
-    add_console_log("KILL_SWITCH: Emergency Kill Switch engaged by operator. Trading halted.")
-    return jsonify({
-        "status": "SUCCESS",
-        "message": "Emergency Kill Switch Engaged. Trading System Halted."
-    })
-
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=config.PORT, debug=True)
+'''
+    with open("dashboard/app.py", "w") as f:
+        f.write(pre_html + new_html + post_html)
+    print("Dashboard HTML Replaced!")
+else:
+    print("Could not find HTML boundaries")
