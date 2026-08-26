@@ -304,6 +304,24 @@ HTML_TEMPLATE = """
                     [SYSTEM] Terminal Initialized...
                 </div>
             </div>
+            </div>
+        </div>
+
+        <!-- Panel 7: AI Command Center -->
+        <div class="panel">
+            <div class="panel-head">
+                <span class="panel-title">AI NEURAL CHAT</span>
+                <span class="panel-subtitle">DIRECT LINK</span>
+            </div>
+            <div class="panel-body" style="display:flex; flex-direction:column; height: 100%;">
+                <div class="console" id="chat-console" style="flex:1; overflow-y:auto; padding-bottom:5px;">
+                    <div style="color: #0F0;">[SYSTEM] Secure neural link established.</div>
+                </div>
+                <div style="display:flex; margin-top:5px;">
+                    <input type="text" id="chat-input" placeholder="Query OmniAlpha..." style="flex:1; background:#000; color:#0F0; border:1px solid #333; font-family:Consolas, monospace; padding:2px 4px; font-size:11px;" onkeydown="if(event.key === 'Enter') sendChat()">
+                    <button onclick="sendChat()" style="background:#0F0; color:#000; border:none; cursor:pointer; font-weight:bold; font-size:11px; padding:2px 8px; margin-left:5px;">SEND</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -329,6 +347,32 @@ HTML_TEMPLATE = """
             } else {
                 document.getElementById('auth-err').innerText = 'ACCESS DENIED';
             }
+        }
+        
+        function sendChat() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value;
+            if(!msg) return;
+            
+            const consoleBox = document.getElementById('chat-console');
+            consoleBox.innerHTML += `<div><span style="color:#FFF;">[USER]:</span> ${msg}</div>`;
+            input.value = '';
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+            
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: msg})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'SUCCESS') {
+                    consoleBox.innerHTML += `<div><span style="color:#0F0;">[OMNIALPHA]:</span> ${data.reply}</div>`;
+                    consoleBox.scrollTop = consoleBox.scrollHeight;
+                } else {
+                    consoleBox.innerHTML += `<div><span style="color:#F00;">[ERROR]:</span> ${data.reply}</div>`;
+                }
+            });
         }
 
         function handleKey(e) { if (e.key === 'Enter') authenticateUser(); }
@@ -629,6 +673,31 @@ def trigger_kill_switch():
         "status": "SUCCESS",
         "message": "Emergency Kill Switch Engaged. Trading System Halted."
     })
+@app.route('/api/chat', methods=['POST'])
+def chat_with_ai():
+    try:
+        data = request.get_json()
+        user_msg = data.get("message", "")
+        # Forward chat to DeepSeek Router
+        from core.deepseek_router import deepseek_router
+        from core.alpaca_client import alpaca_client
+        account = alpaca_client.get_account_summary()
+        positions = alpaca_client.get_positions()
+        
+        system_prompt = (
+            "You are OmniAlpha, an Autonomous Quantitative Trading AI. "
+            "You are chatting directly with the Portfolio Manager via the Bloomberg Terminal. "
+            "Answer their questions concisely and aggressively. "
+            f"Context - Equity: ${account.get('equity', 0)}, Open Positions: {len(positions)}."
+        )
+        
+        ai_reply = deepseek_router.query(prompt=user_msg, system_prompt=system_prompt)
+        if not ai_reply:
+            ai_reply = "System is actively scanning. Connection to Neural Core interrupted."
+            
+        return jsonify({"status": "SUCCESS", "reply": ai_reply})
+    except Exception as e:
+        return jsonify({"status": "ERROR", "reply": str(e)})
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=config.PORT, debug=True)
