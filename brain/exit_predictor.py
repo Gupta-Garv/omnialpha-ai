@@ -1,5 +1,6 @@
 from typing import Dict, Any, List
 from config import config
+from signals.world_monitor import world_monitor
 
 try:
     from google import genai
@@ -34,7 +35,23 @@ class AIExitPredictor:
         market_value = float(position.get("market_value", 0.0))
         unrealized_pl = float(position.get("unrealized_pl", 0.0))
         
-        # Rule 1: High Profit Target Exit (Locking in $350 - $3,000+ gains)
+        # Pull live World Monitor predictive data
+        monitor_intel = world_monitor.fetch_live_catalysts(symbol)
+        world_velocity = monitor_intel.get("velocity", "SURGE")
+        world_prediction = monitor_intel.get("world_prediction", "")
+        
+        # PROACTIVE EXIT 1: Predictive Collapse Escape
+        # If the AI world monitor predicts a collapse based on live grey market news, dump immediately before the drop!
+        if world_velocity == "COLLAPSE" and unrealized_pl > 0:
+            return {
+                "action": "TAKE_PROFIT_EXIT",
+                "symbol": symbol,
+                "reason": f"PROACTIVE PREDICTION: World Monitor detected impending drop. Pulling out to bank ${unrealized_pl:.2f}. Intel: {world_prediction[:80]}...",
+                "banked_pnl": unrealized_pl,
+                "confidence": 0.99
+            }
+
+        # PROACTIVE EXIT 2: High Profit Target Exit (Locking in $350 - $3,000+ gains)
         if unrealized_pl >= 350.0:
             return {
                 "action": "TAKE_PROFIT_EXIT",
@@ -44,28 +61,29 @@ class AIExitPredictor:
                 "confidence": 0.92
             }
             
-        # Rule 2: Gemini AI Deep Sentiment Exits
-        if self.client and unrealized_pl > 100.0:
+        # PROACTIVE EXIT 3: Gemini 3.1 Pro High-Frequency AI Deep Sentiment Exits
+        if self.client and (unrealized_pl > 100.0 or unrealized_pl < -50.0):
             try:
                 prompt = (
-                    f"You are a Senior Quantitative Portfolio Manager. Evaluate position in {symbol}.\n"
+                    f"You are a Senior Quantitative Portfolio Manager using Gemini 3.1 Pro capability. Evaluate open position in {symbol}.\n"
                     f"Qty: {qty}, Market Value: ${market_value}, Unrealized Profit: ${unrealized_pl}.\n"
-                    f"Market Sentiment: {market_sentiment}.\n"
-                    f"Should we HOLD for higher target or TAKE_PROFIT now? Reply with short rationale."
+                    f"World News Intel: {world_prediction}.\n"
+                    f"Predict if the asset will fall in the next 10 seconds. Should we HOLD or TAKE_PROFIT / CUT_LOSS right now before it moves? Reply with short rationale."
                 )
                 response = self.client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-2.5-pro",
                     contents=prompt
                 )
                 rationale = response.text.strip() if response and response.text else "AI Exit Evaluation Completed."
                 
-                if "TAKE_PROFIT" in rationale.upper() or market_sentiment == "BEARISH_VELOCITY":
+                if "TAKE_PROFIT" in rationale.upper() or "CUT_LOSS" in rationale.upper():
+                    action_type = "TAKE_PROFIT_EXIT" if unrealized_pl > 0 else "CUT_LOSS_EXIT"
                     return {
-                        "action": "TAKE_PROFIT_EXIT",
+                        "action": action_type,
                         "symbol": symbol,
-                        "reason": f"Gemini AI Exit Signal: {rationale[:120]}",
+                        "reason": f"AI PREDICTIVE EXIT: {rationale[:120]}",
                         "banked_pnl": unrealized_pl,
-                        "confidence": 0.89
+                        "confidence": 0.95
                     }
             except Exception:
                 pass

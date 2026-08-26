@@ -129,8 +129,8 @@ def main_loop():
                     print(f"    [HOLDING ACTIVE POSITION] {symbol} active in portfolio. Monitoring price momentum.")
 
             scan_cycle += 1
-            print(f"\nSleeping 30 seconds before next scan cycle...")
-            time.sleep(30)
+            print(f"\nSleeping 2 seconds before next scan cycle...")
+            time.sleep(2)
             
     except KeyboardInterrupt:
         print("\nHalting OmniAlpha AI System... Goodbye!")
