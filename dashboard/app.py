@@ -27,12 +27,7 @@ BASE_PRICES = {
     "AMD": 148.20
 }
 
-# Live Micro-Tick Volatility State
-TICK_STATE = {
-    "step": 0,
-    "accumulated_drift": 0.0,
-    "ticker_deltas": {sym: 0.0 for sym in BASE_PRICES}
-}
+
 
 SYSTEM_STATE = {
     "kill_switch_engaged": False,
@@ -713,7 +708,7 @@ HTML_TEMPLATE = """
                         if (pos && mktVal > 0) {
                             pctNum = (pnlVal / mktVal) * 100;
                         } else {
-                            pctNum = isBull ? (0.45 + (Math.random() * 0.40)) : (-0.25 - (Math.random() * 0.30));
+                            pctNum = 0.0;
                         }
                         
                         const pctSign = pctNum >= 0 ? '+' : '';
@@ -881,29 +876,13 @@ def get_state():
     signals = []
     grey_radar = []
     
-    # 24/7 Intraday Micro-Tick Generator (Enables continuous live curve ticks even during off-market hours)
-    TICK_STATE["step"] += 1
-    step = TICK_STATE["step"]
-    
-    # Compute sine-wave micro-drift with pseudo-random noise for realistic institutional price action
-    micro_sine = math.sin(step * 0.4) * 85.0
-    micro_noise = random.uniform(-18.0, 22.0)
-    current_tick_drift = round(micro_sine + micro_noise, 2)
-    TICK_STATE["accumulated_drift"] = current_tick_drift
-
     raw_equity = float(account.get("equity", 100139.96)) if account else 100139.96
-    simulated_equity = raw_equity + current_tick_drift
+    simulated_equity = raw_equity
 
-    total_floating_pnl = current_tick_drift
+    total_floating_pnl = 0.0
     
-    # Update positions P&L dynamically for display
-    if positions:
-        per_pos_pnl = round(current_tick_drift / len(positions), 2)
-        for p in positions:
-            p["unrealized_pl"] = per_pos_pnl
-            base_px = BASE_PRICES.get(p["symbol"], 150.0)
-            p["current_price"] = round(base_px + (per_pos_pnl / max(1.0, float(p.get("qty", 10)))), 2)
-            p["market_value"] = round(float(p["qty"]) * p["current_price"], 2)
+    for p in positions:
+        total_floating_pnl += float(p.get("unrealized_pl", 0.0))
 
     # Bind Secured Cash Profit to real account metrics + active drift
     total_account_gain = raw_equity - 100000.0
