@@ -26,6 +26,8 @@ app = Flask(__name__)
 def _get_state():
     """Return (SYSTEM_STATE, EQUITY_HISTORY) from the main engine module."""
     try:
+        if "__main__" in sys.modules and hasattr(sys.modules["__main__"], "SYSTEM_STATE"):
+            return sys.modules["__main__"].SYSTEM_STATE, sys.modules["__main__"].EQUITY_HISTORY
         import main as _m
         return _m.SYSTEM_STATE, _m.EQUITY_HISTORY
     except Exception:
@@ -466,6 +468,11 @@ def get_state():
         "console_logs": state.get("console_logs", []),
         "memory_journal": reflexion_memory.get_all_entries(),
     })
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return "", 204
 
 
 @app.route("/api/kill_switch", methods=["POST"])
