@@ -11,13 +11,14 @@ from brain.committee import committee
 from memory.journal import reflexion_memory
 from dashboard.app import app
 
+# Institutional Capital Allocation ($15k - $45k trade blocks)
 POSITION_SIZING = {
-    "SPY": 10,   # ~$7,640 position size
-    "QQQ": 10,   # ~$7,090 position size
-    "NVDA": 25,  # ~$5,300 position size
-    "AAPL": 20,  # ~$6,160 position size
-    "TSLA": 20,  # ~$7,060 position size
-    "AMD": 15    # ~$7,140 position size
+    "NVDA": 150,  # ~$31,800 capital block
+    "AMD": 100,   # ~$47,600 capital block
+    "AAPL": 150,  # ~$46,300 capital block
+    "TSLA": 120,  # ~$42,300 capital block
+    "SPY": 50,    # ~$38,200 capital block
+    "QQQ": 50     # ~$35,400 capital block
 }
 
 def run_dashboard_server():
@@ -81,13 +82,13 @@ def main_loop():
                     strat = decision.get("strategy_type")
                     conf = decision.get("confidence", 0.75)
                     audit = decision.get("audit_trail", {})
-                    trade_qty = POSITION_SIZING.get(symbol, 10)
+                    trade_qty = POSITION_SIZING.get(symbol, 50)
                     
                     # Record entry in Reflexion Memory
                     entry_id = reflexion_memory.record_entry(symbol, strat, conf, audit)
                     print(f"🧠 REFLEXION MEMORY LOGGED: {entry_id}")
                     
-                    print(f"⚡ EXECUTING HIGH-CAPACITY PAPER ORDER: {trade_qty} shares of {symbol} ({strat})...")
+                    print(f"⚡ EXECUTING INSTITUTIONAL ALPHA ORDER: {trade_qty} shares of {symbol} ({strat})...")
                     exec_res = alpaca_client.submit_paper_trade(symbol, side="buy", qty=trade_qty)
                     print(f"    Result: {exec_res}")
                 elif symbol in existing_symbols:

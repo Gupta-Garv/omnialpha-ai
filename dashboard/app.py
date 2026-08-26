@@ -7,6 +7,7 @@ from flask import Flask, render_template_string, jsonify, request
 from core.alpaca_client import alpaca_client
 from brain.committee import committee
 from memory.journal import reflexion_memory
+from signals.grey_market import grey_market_scanner
 from config import config
 
 app = Flask(__name__)
@@ -15,9 +16,9 @@ SYSTEM_STATE = {
     "kill_switch_engaged": False,
     "status": "OPERATIONAL",
     "console_logs": [
-        f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: OmniAlpha Quantitative Options Engine Online.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] REFLEXION: Self-Learning Memory Store initialized from disk.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] ALPACA_API: Connected to paper account ae811ce4-f4dc-47a9-975f-fa2e6b42c169.",
+        f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: OmniAlpha Institutional Options Engine Online.",
+        f"[{datetime.now().strftime('%H:%M:%S')}] REFLEXION: Self-Learning Memory Store active with risk-penalty engine.",
+        f"[{datetime.now().strftime('%H:%M:%S')}] GREY_MARKET: Dark Pool Sweep & SEC EDGAR Pre-Catalyst Radar Online.",
         f"[{datetime.now().strftime('%H:%M:%S')}] SECURITY: Password Authentication Gate Active."
     ]
 }
@@ -381,6 +382,28 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
+    <!-- Grey Market & SEC EDGAR Pre-Catalyst Radar -->
+    <div class="panel">
+        <div class="panel-header">
+            <div>GREY MARKET & SEC EDGAR PRE-CATALYST RADAR</div>
+            <div class="txt-muted">DARK POOL SWEEPS & INSIDER FLOW</div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>TICKER</th>
+                    <th>DARK POOL SWEEP</th>
+                    <th>INSTITUTIONAL FLOW</th>
+                    <th>SEC EDGAR FILING EVENT</th>
+                    <th>CONVICTION TIER</th>
+                </tr>
+            </thead>
+            <tbody id="grey-market-table">
+                <tr><td colspan="5" class="txt-muted">Scanning dark pool sweeps & SEC filings...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
     <!-- Active Open Positions Table -->
     <div class="panel">
         <div class="panel-header">
@@ -552,6 +575,20 @@ HTML_TEMPLATE = """
                     equityChart.update();
                     document.getElementById('chart-tick-time').innerText = 'LAST TICK: ' + labels[labels.length - 1];
                 }
+
+                if (data.grey_market_radar && data.grey_market_radar.length > 0) {
+                    let greyHtml = '';
+                    data.grey_market_radar.forEach(g => {
+                        greyHtml += `<tr>
+                            <td><b>${g.symbol}</b></td>
+                            <td class="txt-green">${g.dark_pool_sweep}</td>
+                            <td>${g.institutional_flow}</td>
+                            <td>${g.sec_filing_event}</td>
+                            <td class="txt-green">${(g.conviction_score * 100).toFixed(0)}% HIGH CONVICTION</td>
+                        </tr>`;
+                    });
+                    document.getElementById('grey-market-table').innerHTML = greyHtml;
+                }
                 
                 if (data.positions && data.positions.length > 0) {
                     let posHtml = '';
@@ -692,13 +729,17 @@ def get_state():
     account = alpaca_client.get_account_summary()
     positions = alpaca_client.get_positions()
     signals = []
+    grey_radar = []
     
-    # Auto-Rebalance Trigger if Buying Power drops below $1,000
-    if account and "buying_power" in account and float(account["buying_power"]) < 1000:
-        add_console_log("AUTO_REBALANCE: Buying Power low ($<1000). Triggering automatic position trim...")
-        alpaca_client.close_all_positions()
-        account = alpaca_client.get_account_summary()
-        positions = alpaca_client.get_positions()
+    for sym in config.TARGET_SYMBOLS:
+        grey_data = grey_market_scanner.analyze_grey_market_signals(sym)
+        grey_radar.append({
+            "symbol": sym,
+            "dark_pool_sweep": grey_data.get("dark_pool_sweep"),
+            "institutional_flow": grey_data.get("institutional_flow"),
+            "sec_filing_event": grey_data.get("sec_filing_event"),
+            "conviction_score": grey_data.get("conviction_score")
+        })
 
     # Record equity point in EQUITY_HISTORY buffer
     if account and "equity" in account:
@@ -734,6 +775,7 @@ def get_state():
         "account": account,
         "positions": positions,
         "signals": signals,
+        "grey_market_radar": grey_radar,
         "memory_journal": lessons,
         "equity_history": EQUITY_HISTORY,
         "console_logs": SYSTEM_STATE["console_logs"],
