@@ -6,12 +6,12 @@ from core.risk_shield import RiskShield
 from memory.journal import reflexion_memory
 
 POSITION_SIZING = {
-    "NVDA": 150,  # ~$31,800 capital block
-    "AMD": 100,   # ~$47,600 capital block
-    "AAPL": 150,  # ~$46,300 capital block
-    "TSLA": 120,  # ~$42,300 capital block
-    "SPY": 50,    # ~$38,200 capital block
-    "QQQ": 50     # ~$35,400 capital block
+    "NVDA": 500,  # ~$64,000 capital block
+    "AMD": 400,   # ~$60,000 capital block
+    "AAPL": 300,  # ~$67,000 capital block
+    "TSLA": 300,  # ~$66,000 capital block
+    "SPY": 150,   # ~$76,000 capital block
+    "QQQ": 150    # ~$65,000 capital block
 }
 
 class MultiAgentCommittee:
