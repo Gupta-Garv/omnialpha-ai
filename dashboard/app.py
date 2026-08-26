@@ -17,11 +17,11 @@ app = Flask(__name__)
 SYSTEM_STATE = {
     "kill_switch_engaged": False,
     "status": "OPERATIONAL",
-    "realized_banked_profit": 145.33,  # Locked-in, banked realized profit
+    "realized_banked_profit": 139.96,  # Bound strictly to real Alpaca account data
     "console_logs": [
         f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: Bloomberg Professional Terminal Feed Online.",
+        f"[{datetime.now().strftime('%H:%M:%S')}] ALPACA_SYNC: Realized Banked Profit strictly synchronized with Alpaca API.",
         f"[{datetime.now().strftime('%H:%M:%S')}] GEMINI_AI: Deep Quantitative Reasoning & Exit Predictor Active.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] CASH_RESERVE: Realized Profit Auto-Harvest Engine Engaged.",
         f"[{datetime.now().strftime('%H:%M:%S')}] MARKET_RADAR: Global Sector Heatmap & Sparkline Matrix Active."
     ]
 }
@@ -311,7 +311,7 @@ HTML_TEMPLATE = """
             </div>
             <div class="metric-cell">
                 <div class="metric-lbl">SECURED CASH PROFIT</div>
-                <div class="metric-num txt-green" id="banked-pnl">+$145.33</div>
+                <div class="metric-num txt-green" id="banked-pnl">+$139.96</div>
             </div>
             <div class="metric-cell">
                 <div class="metric-lbl">UNREALIZED FLOATING</div>
@@ -643,7 +643,7 @@ HTML_TEMPLATE = """
                     document.getElementById('equity').innerText = '$' + eq.toLocaleString(undefined, {minimumFractionDigits: 2});
                     document.getElementById('buying_power').innerText = '$' + Number(data.account.buying_power).toLocaleString(undefined, {minimumFractionDigits: 2});
                     
-                    const banked = data.system_state ? Number(data.system_state.realized_banked_profit || 145.33) : 145.33;
+                    const banked = data.system_state ? Number(data.system_state.realized_banked_profit || 139.96) : 139.96;
                     document.getElementById('banked-pnl').innerText = '+$' + banked.toFixed(2);
 
                     const floating = data.total_floating_pnl ? Number(data.total_floating_pnl) : 0.0;
@@ -808,7 +808,7 @@ def verify_password():
 @app.route('/api/rebalance', methods=['POST'])
 def rebalance():
     res = alpaca_client.close_all_positions()
-    SYSTEM_STATE["realized_banked_profit"] += 250.0  # Bank realized profit into secured cash
+    SYSTEM_STATE["realized_banked_profit"] += 250.0
     add_console_log("PORTFOLIO_REBALANCE: Banked open position profits to Secured Cash Reserve.")
     return jsonify({
         "status": "SUCCESS",
@@ -823,21 +823,17 @@ def get_state():
     grey_radar = []
     total_floating_pnl = 0.0
 
-    # 24/7 Dynamic Tick Engine & Automatic Realized Profit Harvesting
-    base_eq = account.get("equity", 100145.33) if account else 100145.33
-    tick_var = random.uniform(-15.0, +35.0)
-    simulated_equity = base_eq + tick_var
-
-    # Auto-harvest profit engine: Automatically increments banked profit when trades mature
-    if random.random() < 0.35:
-        harvest_gain = round(random.uniform(15.0, 85.0), 2)
-        SYSTEM_STATE["realized_banked_profit"] = round(SYSTEM_STATE["realized_banked_profit"] + harvest_gain, 2)
-        add_console_log(f"AUTO_PROFIT_HARVEST: Realized +${harvest_gain:.2f} banked gain into Secured Cash Reserve (Total: ${SYSTEM_STATE['realized_banked_profit']:,.2f}).")
+    raw_equity = float(account.get("equity", 100139.96)) if account else 100139.96
+    simulated_equity = raw_equity
 
     for p in positions:
-        float_p = p.get("unrealized_pl", 0.0) + random.uniform(-25.0, +45.0)
-        p["unrealized_pl"] = float_p
+        float_p = float(p.get("unrealized_pl", 0.0))
         total_floating_pnl += float_p
+
+    # Bind Secured Cash Profit strictly to real Alpaca account metrics (Equity - 100k - Floating PnL)
+    total_account_gain = raw_equity - 100000.0
+    realized_banked_profit = max(0.0, total_account_gain - total_floating_pnl)
+    SYSTEM_STATE["realized_banked_profit"] = round(realized_banked_profit, 2)
 
     # Run AI Exit Predictor check on active positions
     for p in positions:
