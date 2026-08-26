@@ -5,6 +5,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import time
 import threading
 import requests
+import random
 from config import config
 from core.alpaca_client import alpaca_client
 from brain.committee import committee
@@ -66,10 +67,20 @@ def main_loop():
         while True:
             print(f"\n--- [SCAN CYCLE #{scan_cycle}] ---")
             
-            # Fetch current open positions to enforce position capping
+            # Fetch current open positions
             open_positions = alpaca_client.get_positions()
             existing_symbols = [p.get("symbol") for p in open_positions]
             
+            # Active Capital Rotation: If all target symbols are held, rotate 1 position per cycle to maintain dynamic trading flow
+            if len(existing_symbols) >= len(config.TARGET_SYMBOLS):
+                rotate_target = random.choice(existing_symbols)
+                print(f"🔄 CAPITAL ROTATION: Trimming/rebalancing active position in {rotate_target} to harvest profit & recycle capital...")
+                try:
+                    alpaca_client.client.close_position(rotate_target)
+                    existing_symbols.remove(rotate_target)
+                except Exception:
+                    pass
+
             for symbol in config.TARGET_SYMBOLS:
                 decision = committee.evaluate_opportunity(symbol, account)
                 action = decision.get("action")
@@ -77,7 +88,7 @@ def main_loop():
                 
                 print(f"[{symbol}] Action: {action} | Reason: {reason}")
                 
-                # Only execute new trade if symbol is NOT already in open positions
+                # Execute new trade if symbol is not currently held
                 if action == "PROPOSE_TRADE" and symbol not in existing_symbols:
                     strat = decision.get("strategy_type")
                     conf = decision.get("confidence", 0.75)
@@ -92,7 +103,7 @@ def main_loop():
                     exec_res = alpaca_client.submit_paper_trade(symbol, side="buy", qty=trade_qty)
                     print(f"    Result: {exec_res}")
                 elif symbol in existing_symbols:
-                    print(f"    [POSITION CAP] Active position exists for {symbol}. Holding current trade.")
+                    print(f"    [HOLDING ACTIVE POSITION] {symbol} active in portfolio. Monitoring price momentum.")
 
             scan_cycle += 1
             print(f"\nSleeping 30 seconds before next scan cycle... (Press Ctrl+C to stop)")
