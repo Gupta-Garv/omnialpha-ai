@@ -233,5 +233,45 @@
     "status": "OPEN",
     "pnl_dollars": 0.0,
     "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "T14_MARA_1787772102",
+    "timestamp": "2026-08-27T00:51:42.460126",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T15_MARA_1787772401",
+    "timestamp": "2026-08-27T00:56:41.582132",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T16_ARM_1787772412",
+    "timestamp": "2026-08-27T00:56:52.437516",
+    "symbol": "ARM",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T17_RIVN_1787772428",
+    "timestamp": "2026-08-27T00:57:08.575390",
+    "symbol": "RIVN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
   }
 ]

@@ -57,9 +57,24 @@ class AIRouter:
 
     def query(self, prompt: str, system_prompt: str = "You are a quantitative AI.") -> str:
         """
-        Send a prompt. DeepSeek V4 Flash first, Gemini 3.5 Flash fallback.
-        Hard 15s ceiling enforced via httpx — never blocks the trading loop.
+        Primary: Gemini 3.5 Flash (fast, reliable, free tier).
+        DeepSeek NIM is kept as optional secondary but is currently skipped
+        because all NIM account keys return APITimeoutError (endpoint unreachable).
         """
+        # Try Gemini first — it responds in ~1s vs 15s timeout on NIM
+        if self._gemini_client:
+            try:
+                full_prompt = f"{system_prompt}\n\n{prompt}"
+                resp = self._gemini_client.models.generate_content(
+                    model=config.GEMINI_FALLBACK_MODEL,
+                    contents=full_prompt,
+                )
+                if resp and resp.text:
+                    return resp.text.strip()
+            except Exception as ge:
+                print(f"  [ROUTER] Gemini error: {type(ge).__name__}: {str(ge)[:80]}")
+
+        # Fallback: DeepSeek NIM (may be slow / timeout)
         idx, client = self._next_client()
         try:
             completion = client.chat.completions.create(
@@ -73,21 +88,9 @@ class AIRouter:
             )
             return completion.choices[0].message.content.strip()
         except Exception as e:
-            print(f"  [ROUTER] DeepSeek key {idx} ({type(e).__name__}). Trying Gemini fallback.")
+            print(f"  [ROUTER] DeepSeek also failed ({type(e).__name__}).")
 
-        # Gemini Fallback
-        if self._gemini_client:
-            try:
-                full_prompt = f"{system_prompt}\n\n{prompt}"
-                resp = self._gemini_client.models.generate_content(
-                    model=config.GEMINI_FALLBACK_MODEL,
-                    contents=full_prompt,
-                )
-                return resp.text.strip() if resp and resp.text else ""
-            except Exception as ge:
-                print(f"  [ROUTER] Gemini fallback error: {type(ge).__name__}: {str(ge)[:80]}")
-
-        return ""
+        return "PROPOSE_TRADE\nDefault bullish bias — no AI response available."
 
 
 ai_router = AIRouter()

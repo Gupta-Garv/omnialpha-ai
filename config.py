@@ -30,7 +30,7 @@ class Config:
     STOP_LOSS_PCT: float = float(os.getenv("STOP_LOSS_PCT", "50.0"))
 
     # Block Trade Size
-    BLOCK_NOTIONAL: float = 5000.0   # Start conservatively at $5k per block
+    BLOCK_NOTIONAL: float = 10000.0   # $10k per block trade
 
     PORT: int = int(os.getenv("PORT", "8080"))
 
