@@ -27,6 +27,7 @@ class AIExitPredictor:
             
         self.ai_cache = {}
         self.ai_cache_ttl = 300  # 5 minute cache (high-frequency during market hours)
+        self.trailing_peaks = {}
 
     def evaluate_position_exit(self, position: Dict[str, Any], market_sentiment: str) -> Dict[str, Any]:
         """
@@ -54,14 +55,39 @@ class AIExitPredictor:
                 "confidence": 0.99
             }
 
-        # PROACTIVE EXIT 2: High Profit Target Exit (Locking in $350 - $3,000+ gains)
-        if unrealized_pl >= 350.0:
+        # DYNAMIC TRAILING STOP: Track the highest peak profit
+        if symbol not in self.trailing_peaks:
+            self.trailing_peaks[symbol] = unrealized_pl
+        else:
+            # If the unrealized_pl drops below 0, it means it's a new position or we lost profit. Reset peak if it's below zero just to be safe.
+            if unrealized_pl < 0:
+                self.trailing_peaks[symbol] = unrealized_pl
+            else:
+                self.trailing_peaks[symbol] = max(self.trailing_peaks[symbol], unrealized_pl)
+                
+        peak_pl = self.trailing_peaks[symbol]
+
+        # PROACTIVE EXIT 2: Trailing Stop & Hard Profit Target
+        # If we reached > $400 profit, and it falls by 25% from its peak, SELL IMMEDIATELY.
+        if peak_pl >= 400.0 and unrealized_pl <= (peak_pl * 0.75):
+            self.trailing_peaks[symbol] = 0.0 # reset
             return {
                 "action": "TAKE_PROFIT_EXIT",
                 "symbol": symbol,
-                "reason": f"Target profit threshold reached (+${unrealized_pl:.2f}). Banking realized gains to cash reserve.",
+                "reason": f"TRAILING STOP: Dropped from peak +${peak_pl:.2f}. Securing +${unrealized_pl:.2f} before further fall.",
                 "banked_pnl": unrealized_pl,
-                "confidence": 0.92
+                "confidence": 0.98
+            }
+            
+        # Hard limit take-profit if it randomly spikes 2%+ ($1200+ on $60k block)
+        if unrealized_pl >= (market_value * 0.02):
+            self.trailing_peaks[symbol] = 0.0
+            return {
+                "action": "TAKE_PROFIT_EXIT",
+                "symbol": symbol,
+                "reason": f"MASSIVE SPIKE DETECTED (+2% target). Banking +${unrealized_pl:.2f} immediately.",
+                "banked_pnl": unrealized_pl,
+                "confidence": 0.99
             }
             
         # PROACTIVE EXIT 3: Gemini 3.1 Pro High-Frequency AI Deep Sentiment Exits
@@ -114,14 +140,16 @@ class AIExitPredictor:
             except Exception:
                 pass
                 
-        # Rule 3: Defensive Cut-Loss Guard (-5% drawdown trigger)
-        if unrealized_pl <= -1200.0:
+        # Rule 3: Defensive Cut-Loss Guard (-1.0% drawdown trigger instead of -1200 fixed)
+        stop_loss_limit = market_value * -0.010
+        if unrealized_pl <= stop_loss_limit:
+            self.trailing_peaks[symbol] = 0.0
             return {
                 "action": "CUT_LOSS_EXIT",
                 "symbol": symbol,
-                "reason": f"Risk Shield Guard: Preemptive stop-loss executed at -${abs(unrealized_pl):.2f} to protect capital.",
+                "reason": f"RISK SHIELD: Strict -1.0% stop-loss executed at -${abs(unrealized_pl):.2f} to prevent heavy bleed.",
                 "banked_pnl": unrealized_pl,
-                "confidence": 0.95
+                "confidence": 0.99
             }
 
         return {

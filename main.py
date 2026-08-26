@@ -92,15 +92,6 @@ def main_loop():
                     except Exception as e:
                         print(f"    Exit Order Note: {str(e)}")
 
-            # 2. ACTIVE CAPITAL ROTATION (Prevents Stagnation)
-            if len(existing_symbols) >= len(config.TARGET_SYMBOLS):
-                rotate_target = random.choice(existing_symbols)
-                print(f"🔄 CAPITAL ROTATION: Recycling capital in {rotate_target} for fresh catalyst setups...")
-                try:
-                    alpaca_client.client.close_position(rotate_target)
-                    existing_symbols.remove(rotate_target)
-                except Exception:
-                    pass
 
             # 3. MULTI-AGENT COMMITTEE ENTRY EVALUATION
             for symbol in config.TARGET_SYMBOLS:

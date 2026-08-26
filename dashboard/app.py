@@ -32,7 +32,7 @@ BASE_PRICES = {
 SYSTEM_STATE = {
     "kill_switch_engaged": False,
     "status": "OPERATIONAL",
-    "realized_banked_profit": 139.96,  # Bound to real Alpaca paper metrics + active profit harvesting
+    "realized_banked_profit": 0.0,  # Bound to real Alpaca paper metrics + active profit harvesting
     "console_logs": [
         f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: Bloomberg Professional Terminal Feed Online.",
         f"[{datetime.now().strftime('%H:%M:%S')}] ALPACA_SYNC: Realized Banked Profit strictly synchronized with Alpaca API.",
@@ -380,8 +380,12 @@ HTML_TEMPLATE = """
                     document.getElementById('equity').innerText = '$' + Number(data.account.equity).toLocaleString(undefined, {minimumFractionDigits: 2});
                     document.getElementById('buying_power').innerText = '$' + Number(data.account.buying_power).toLocaleString(undefined, {minimumFractionDigits: 2});
                     
-                    const banked = data.system_state ? Number(data.system_state.realized_banked_profit || 139.96) : 139.96;
-                    document.getElementById('banked-pnl').innerText = '+$' + banked.toFixed(2);
+                    const banked = data.system_state ? Number(data.system_state.realized_banked_profit || 0) : 0;
+                    const bankedSign = banked >= 0 ? '+' : '-';
+                    const bankedColor = banked >= 0 ? 'green' : 'red';
+                    const bankedElem = document.getElementById('banked-pnl');
+                    bankedElem.innerText = bankedSign + '$' + Math.abs(banked).toFixed(2);
+                    bankedElem.className = 'm-val ' + bankedColor;
 
                     const floating = data.total_floating_pnl ? Number(data.total_floating_pnl) : 0.0;
                     const floatElem = document.getElementById('floating-pnl');
@@ -552,7 +556,7 @@ def get_state():
     signals = []
     grey_radar = []
     
-    raw_equity = float(account.get("equity", 100139.96)) if account else 100139.96
+    raw_equity = float(account.get("equity", 100000.0)) if account else 100000.0
     simulated_equity = raw_equity
 
     total_floating_pnl = 0.0
@@ -560,9 +564,9 @@ def get_state():
     for p in positions:
         total_floating_pnl += float(p.get("unrealized_pl", 0.0))
 
-    # Bind Secured Cash Profit to real account metrics + active drift
+    # Realized Banked Profit (Total Account Gain minus Floating PnL)
     total_account_gain = raw_equity - 100000.0
-    realized_banked_profit = max(139.96, total_account_gain)
+    realized_banked_profit = total_account_gain - total_floating_pnl
     SYSTEM_STATE["realized_banked_profit"] = round(realized_banked_profit, 2)
 
     for sym in config.TARGET_SYMBOLS:
