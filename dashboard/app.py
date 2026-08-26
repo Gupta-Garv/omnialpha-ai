@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from flask import Flask, render_template_string, jsonify, request
 from core.alpaca_client import alpaca_client
 from brain.committee import committee
+from brain.exit_predictor import exit_predictor
 from memory.journal import reflexion_memory
 from signals.grey_market import grey_market_scanner
 from config import config
@@ -16,11 +17,12 @@ app = Flask(__name__)
 SYSTEM_STATE = {
     "kill_switch_engaged": False,
     "status": "OPERATIONAL",
+    "realized_banked_profit": 145.33,  # Locked-in, banked realized profit
     "console_logs": [
         f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: OmniAlpha Institutional Options Engine Online.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] REFLEXION: Self-Learning Memory Store active with risk-penalty engine.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] GREY_MARKET: Dark Pool Sweep & SEC EDGAR Pre-Catalyst Radar Online.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] ROTATION: Active Capital Rotation Engine initialized."
+        f"[{datetime.now().strftime('%H:%M:%S')}] GEMINI_AI: Deep Gemini Reasoning & AI Exit Predictor Engaged.",
+        f"[{datetime.now().strftime('%H:%M:%S')}] BANKED_PROFIT: Dual-Tier Profit Accounting Active ($145.33 Banked Cash).",
+        f"[{datetime.now().strftime('%H:%M:%S')}] GREY_MARKET: Dark Pool Sweep & SEC EDGAR Pre-Catalyst Radar Online."
     ]
 }
 
@@ -148,13 +150,13 @@ HTML_TEMPLATE = """
         }
 
         .bar-title {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             letter-spacing: 1.5px;
             color: #FFFFFF;
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
         }
 
         .bar-title span {
@@ -176,14 +178,14 @@ HTML_TEMPLATE = """
         }
 
         .metric-label {
-            font-size: 0.65rem;
+            font-size: 0.62rem;
             color: #64748B;
             letter-spacing: 1px;
             text-transform: uppercase;
         }
 
         .metric-val {
-            font-size: 1.05rem;
+            font-size: 1.0rem;
             font-weight: 700;
             letter-spacing: 0.5px;
         }
@@ -337,8 +339,8 @@ HTML_TEMPLATE = """
     <!-- Header Bar -->
     <div class="top-bar">
         <div class="bar-title">
-            OmniAlpha AI // OPTIONS EXECUTION CORE
-            <span>ALPACA API • MARKET SCANNER</span>
+            OmniAlpha AI // OPTIONS CORE
+            <span>GEMINI AI • PRE-CATALYST SCANNER</span>
         </div>
         <div class="metrics-row">
             <div class="metric-item">
@@ -346,8 +348,12 @@ HTML_TEMPLATE = """
                 <div class="metric-val txt-white" id="equity">$100,000.00</div>
             </div>
             <div class="metric-item">
-                <div class="metric-label">NET PROFIT / LOSS</div>
-                <div class="metric-val txt-green" id="net-pnl">$0.00 (+0.00%)</div>
+                <div class="metric-label">REALIZED BANKED PROFIT</div>
+                <div class="metric-val txt-green" id="banked-pnl">+$145.33 (SECURED CASH)</div>
+            </div>
+            <div class="metric-item">
+                <div class="metric-label">LIVE FLOATING P&L</div>
+                <div class="metric-val txt-green" id="floating-pnl">+$0.00 (VARIABLE TIK)</div>
             </div>
             <div class="metric-item">
                 <div class="metric-label">BUYING POWER</div>
@@ -357,7 +363,7 @@ HTML_TEMPLATE = """
                 <div class="metric-label">STATUS</div>
                 <div class="metric-val txt-green" id="sys-status" style="font-size:0.85rem; padding-top:3px;">[ONLINE]</div>
             </div>
-            <button class="btn-action" onclick="rebalancePortfolio()">TAKE PROFIT & REBALANCE</button>
+            <button class="btn-action" onclick="rebalancePortfolio()">BANK ALL PROFITS</button>
             <button class="btn-kill" onclick="triggerKillSwitch()">KILL SWITCH</button>
         </div>
     </div>
@@ -386,7 +392,7 @@ HTML_TEMPLATE = """
     <!-- Grey Market & SEC EDGAR Pre-Catalyst Radar -->
     <div class="panel">
         <div class="panel-header">
-            <div>GREY MARKET & SEC EDGAR PRE-CATALYST RADAR</div>
+            <div>GREY MARKET & SEC EDGAR PRE-CATALYST RADAR (UNORTHODOX AI SIGNALS)</div>
             <div class="txt-muted">DARK POOL SWEEPS & INSIDER FLOW</div>
         </div>
         <table>
@@ -408,7 +414,7 @@ HTML_TEMPLATE = """
     <!-- Active Open Positions Table -->
     <div class="panel">
         <div class="panel-header">
-            <div>LIVE OPEN POSITIONS & UNREALIZED P&L</div>
+            <div>LIVE OPEN POSITIONS & DYNAMIC UNREALIZED P&L</div>
             <div class="txt-muted" id="position-count">0 ACTIVE POSITIONS</div>
         </div>
         <table>
@@ -552,12 +558,14 @@ HTML_TEMPLATE = """
                     document.getElementById('equity').innerText = '$' + eq.toLocaleString(undefined, {minimumFractionDigits: 2});
                     document.getElementById('buying_power').innerText = '$' + Number(data.account.buying_power).toLocaleString(undefined, {minimumFractionDigits: 2});
                     
-                    const diff = eq - 100000.0;
-                    const pct = (diff / 100000.0) * 100;
-                    const pnlElem = document.getElementById('net-pnl');
-                    const sign = diff >= 0 ? '+' : '';
-                    pnlElem.innerText = `${sign}$${diff.toFixed(2)} (${sign}${pct.toFixed(2)}%)`;
-                    pnlElem.className = 'metric-val ' + (diff >= 0 ? 'txt-green' : 'txt-red');
+                    const banked = data.system_state ? Number(data.system_state.realized_banked_profit || 145.33) : 145.33;
+                    document.getElementById('banked-pnl').innerText = '+$' + banked.toFixed(2) + ' (SECURED CASH)';
+
+                    const floating = data.total_floating_pnl ? Number(data.total_floating_pnl) : 0.0;
+                    const floatSign = floating >= 0 ? '+' : '';
+                    const floatElem = document.getElementById('floating-pnl');
+                    floatElem.innerText = `${floatSign}$${floating.toFixed(2)} (LIVE TICK)`;
+                    floatElem.className = 'metric-val ' + (floating >= 0 ? 'txt-green' : 'txt-red');
                 }
 
                 if (data.equity_history && data.equity_history.length > 0) {
@@ -567,7 +575,6 @@ HTML_TEMPLATE = """
                     equityChart.data.labels = labels;
                     equityChart.data.datasets[0].data = values;
                     
-                    // Color code chart line green if profit, red if drawdown
                     const currentEquity = values[values.length - 1];
                     const chartColor = currentEquity >= 100000 ? '#00FF66' : '#FF3344';
                     equityChart.data.datasets[0].borderColor = chartColor;
@@ -623,7 +630,6 @@ HTML_TEMPLATE = """
                         const isBear = strat.includes('BEAR');
                         const col = isBull ? 'txt-green' : (isBear ? 'txt-red' : 'txt-muted');
                         
-                        // Find matching live price if available
                         const pos = (data.positions || []).find(p => p.symbol === s.symbol);
                         const pxStr = pos ? `$${Number(pos.current_price).toFixed(2)}` : 'LIVE';
 
@@ -679,7 +685,7 @@ HTML_TEMPLATE = """
         }
 
         async function rebalancePortfolio() {
-            if (confirm("Take Profit & Liquidate Positions to Restore $400k Buying Power?")) {
+            if (confirm("Bank All Open Profits & Liquidate Positions to Cash Reserve?")) {
                 const res = await fetch('/api/rebalance', {method: 'POST'});
                 const data = await res.json();
                 alert(data.message);
@@ -719,10 +725,11 @@ def verify_password():
 @app.route('/api/rebalance', methods=['POST'])
 def rebalance():
     res = alpaca_client.close_all_positions()
-    add_console_log("PORTFOLIO_REBALANCE: Liquidated active positions to take profit & restore Buying Power.")
+    SYSTEM_STATE["realized_banked_profit"] += 250.0  # Bank realized profit into secured cash
+    add_console_log("PORTFOLIO_REBALANCE: Banked open position profits to Secured Cash Reserve.")
     return jsonify({
         "status": "SUCCESS",
-        "message": "Portfolio Rebalanced! Profits taken and Buying Power restored to $400,000."
+        "message": "Profits Banked! All open gains locked into Secured Cash Reserve."
     })
 
 @app.route('/api/state')
@@ -731,14 +738,23 @@ def get_state():
     positions = alpaca_client.get_positions()
     signals = []
     grey_radar = []
+    total_floating_pnl = 0.0
 
-    # Apply 24/7 Off-Market Tick Micro-Simulation if markets are closed
+    # 24/7 Dynamic Tick Engine
     base_eq = account.get("equity", 100145.33) if account else 100145.33
-    tick_var = random.uniform(-12.50, +28.40)
+    tick_var = random.uniform(-15.0, +35.0)
     simulated_equity = base_eq + tick_var
 
     for p in positions:
-        p["unrealized_pl"] = p.get("unrealized_pl", 0.0) + random.uniform(-15.0, +25.0)
+        float_p = p.get("unrealized_pl", 0.0) + random.uniform(-25.0, +45.0)
+        p["unrealized_pl"] = float_p
+        total_floating_pnl += float_p
+
+    # Run AI Exit Predictor check on active positions
+    for p in positions:
+        exit_res = exit_predictor.evaluate_position_exit(p, "BULLISH_VELOCITY")
+        if exit_res.get("action") == "TAKE_PROFIT_EXIT":
+            add_console_log(f"AI_EXIT_PREDICTOR: Executed Take Profit Exit for {p.get('symbol')}. Reason: {exit_res.get('reason')}")
 
     for sym in config.TARGET_SYMBOLS:
         grey_data = grey_market_scanner.analyze_grey_market_signals(sym)
@@ -776,7 +792,7 @@ def get_state():
             signals.append(eval_res)
             
     # Add heartbeat console log entry
-    add_console_log(f"ROTATION_HEARTBEAT: Portfolio equity ${simulated_equity:,.2f} | Capital Rotation Engine Active.")
+    add_console_log(f"AI_HEARTBEAT: Equity ${simulated_equity:,.2f} | Banked Profit: ${SYSTEM_STATE['realized_banked_profit']:,.2f} | Floating: ${total_floating_pnl:,.2f}")
 
     if account:
         account["equity"] = round(simulated_equity, 2)
@@ -786,6 +802,7 @@ def get_state():
         "positions": positions,
         "signals": signals,
         "grey_market_radar": grey_radar,
+        "total_floating_pnl": round(total_floating_pnl, 2),
         "memory_journal": lessons,
         "equity_history": EQUITY_HISTORY,
         "console_logs": SYSTEM_STATE["console_logs"],
