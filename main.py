@@ -124,11 +124,19 @@ def main_loop():
             SYSTEM_STATE["recent_signals"] = current_signals
 
             scan_cycle += 1
-            print(f"\nSleeping 2 seconds before next scan cycle...")
-            time.sleep(2)
+            print(f"\nSleeping 10 seconds before next scan cycle...")
+            time.sleep(10)
             
     except KeyboardInterrupt:
         print("\nHalting OmniAlpha AI System... Goodbye!")
+    except Exception as e:
+        print(f"\nCRITICAL ERROR IN MAIN LOOP: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # Don't let the script die entirely in production, just wait and retry
+        time.sleep(10)
+        main_loop()
 
 if __name__ == "__main__":
     main_loop()
