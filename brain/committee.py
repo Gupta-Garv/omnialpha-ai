@@ -2,6 +2,7 @@ from typing import Dict, Any, List
 from signals.insider_tracker import insider_tracker
 from signals.social_radar import social_radar
 from signals.grey_market import grey_market_scanner
+from signals.world_monitor import world_monitor
 from core.risk_shield import RiskShield
 from memory.journal import reflexion_memory
 
@@ -30,16 +31,31 @@ class MultiAgentCommittee:
         insider_signals = insider_tracker.fetch_recent_filings([symbol])
         social_signal = social_radar.analyze_ticker_sentiment(symbol)
         past_lessons = reflexion_memory.get_lessons_for_symbol(symbol)
+        
+        # 2. GET LIVE WORLD MONITOR INTEL (REAL RSS FEEDS + GEMINI)
+        monitor_intel = world_monitor.fetch_live_catalysts(symbol)
+        world_velocity = monitor_intel.get("velocity", "STAGNATE")
 
         has_insider_activity = len(insider_signals) > 0 or "FORM_4" in grey_signals.get("sec_filing_event", "")
         sentiment = social_signal.get("sentiment", "NEUTRAL")
         grey_conviction = grey_signals.get("conviction_score", 0.75)
         dark_pool_flow = grey_signals.get("institutional_flow", "+$0.0M")
         
-        # 2. Institutional Decision & Strategy Selection
+        # 3. Institutional Decision & Strategy Selection
+        target_qty = POSITION_SIZING.get(symbol, 50)
+        
+        # STRATEGY OVERHAUL: ONLY enter if World Monitor specifically detects a SURGE
+        if world_velocity != "SURGE":
+            return {
+                "symbol": symbol,
+                "action": "HOLD_CASH",
+                "strategy_type": "WAITING_FOR_CATALYST",
+                "confidence": 0.0,
+                "reason": f"World Monitor detects {world_velocity}. Sitting in cash until trend reversal."
+            }
+            
         action = "PROPOSE_TRADE"
         strategy_type = "INSTITUTIONAL_BULL_LEVERAGE"
-        target_qty = POSITION_SIZING.get(symbol, 50)
         
         # Dynamic Risk Allocation based on Equity ($100k account)
         estimated_max_loss = 1500.0  # Cap maximum risk at $1,500 per position block
