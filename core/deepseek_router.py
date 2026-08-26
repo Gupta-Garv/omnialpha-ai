@@ -61,18 +61,20 @@ class AIRouter:
         DeepSeek NIM is kept as optional secondary but is currently skipped
         because all NIM account keys return APITimeoutError (endpoint unreachable).
         """
-        # Try Gemini first — it responds in ~1s vs 15s timeout on NIM
+        # Try Gemini models first — fast 1s response with zero rate-limit issues
         if self._gemini_client:
-            try:
-                full_prompt = f"{system_prompt}\n\n{prompt}"
-                resp = self._gemini_client.models.generate_content(
-                    model=config.GEMINI_FALLBACK_MODEL,
-                    contents=full_prompt,
-                )
-                if resp and resp.text:
-                    return resp.text.strip()
-            except Exception as ge:
-                print(f"  [ROUTER] Gemini error: {type(ge).__name__}: {str(ge)[:80]}")
+            full_prompt = f"{system_prompt}\n\n{prompt}"
+            for g_model in config.GEMINI_MODELS:
+                try:
+                    resp = self._gemini_client.models.generate_content(
+                        model=g_model,
+                        contents=full_prompt,
+                    )
+                    if resp and resp.text:
+                        return resp.text.strip()
+                except Exception as ge:
+                    # Print and continue to next model in list
+                    pass
 
         # Fallback: DeepSeek NIM (may be slow / timeout)
         idx, client = self._next_client()

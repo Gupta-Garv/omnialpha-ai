@@ -22,7 +22,12 @@ class Config:
 
     # AI Model Names (verified working)
     DEEPSEEK_MODEL: str = "deepseek-ai/deepseek-v4-flash-0731"
-    GEMINI_FALLBACK_MODEL: str = "gemini-3.5-flash"   # Verified working via API probe
+    GEMINI_MODELS: list = [
+        "models/gemini-3.5-flash-lite",
+        "models/gemini-3.1-flash-lite",
+        "models/gemini-flash-lite-latest",
+        "models/gemini-3.5-flash"
+    ]
 
     # Risk Parameters
     MAX_PORTFOLIO_RISK_PCT: float = float(os.getenv("MAX_PORTFOLIO_RISK_PCT", "3.0"))
