@@ -220,5 +220,18 @@
     "status": "OPEN",
     "pnl_dollars": 0.0,
     "lesson_learned": "Trade active in paper portfolio."
+  },
+  {
+    "id": "TRADE_13_ARM_1787770575",
+    "timestamp": "2026-08-27T00:26:15.553206",
+    "symbol": "ARM",
+    "strategy": "INSTITUTIONAL_BULL_LEVERAGE",
+    "confidence": 0.95,
+    "audit_trail": {
+      "rationale": "Aggressive momentum surge with bullish social velocity justifies leveraged entry despite flat institutional flow, targeting a 3:1 reward-to-risk."
+    },
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in paper portfolio."
   }
 ]

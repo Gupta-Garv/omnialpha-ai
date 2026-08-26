@@ -70,10 +70,7 @@ class DeepSeekRouter:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                top_p=0.95,
-                max_tokens=2048,
-                extra_body={"chat_template_kwargs": {"thinking": True, "reasoning_effort": "high"}},
-                stream=False
+                max_tokens=1024
             )
             return completion.choices[0].message.content.strip()
         except Exception as e:
@@ -86,7 +83,7 @@ class DeepSeekRouter:
                     gemini_client = genai.Client(api_key=config.GEMINI_API_KEY)
                     gemini_prompt = f"{system_prompt}\n\n{prompt}"
                     response = gemini_client.models.generate_content(
-                        model="gemini-3.6-flash",
+                        model="gemini-3.5-flash",
                         contents=gemini_prompt
                     )
                     return response.text.strip() if response and response.text else ""

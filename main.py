@@ -103,6 +103,7 @@ def main_loop():
                 current_signals.append(decision)
                 
                 print(f"[{symbol}] Action: {action} | Reason: {reason}")
+                add_console_log(f"AI_SCAN [{symbol}]: Action={action}. Reason: {reason[:60]}...")
                 
                 # Execute new trade if symbol is not currently held
                 if action == "PROPOSE_TRADE" and symbol not in existing_symbols:

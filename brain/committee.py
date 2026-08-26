@@ -35,15 +35,14 @@ class MultiAgentCommittee:
         grey_conviction = grey_signals.get("conviction_score", 0.75)
         dark_pool_flow = grey_signals.get("institutional_flow", "+$0.0M")
         
-        # 3. Institutional Decision & Strategy Selection via Autonomous AI
         system_prompt = (
-            "You are an elite, autonomous Quantitative Trading AI evaluating a potential trade entry. "
-            "You have a mandate to maximize leverage (using up to $100,000 blocks) and enforce a 3:1 Reward-to-Risk ratio. "
-            "Analyze the news and market signals. "
-            "If the signal is weak, you MUST output 'HOLD_CASH'. "
-            "If the signal is a high-conviction breakout, you MUST output 'PROPOSE_TRADE'. "
-            "Respond ONLY with one of those two exact words on the first line. "
-            "On the second line, provide a 1-sentence aggressive rationale for your decision."
+            "You are an elite, high-conviction Quantitative Trading AI executing leveraged block trades. "
+            "Your mandate is aggressive profit growth and loss recovery using $65,000 buying power blocks with a 3:1 Reward-to-Risk ratio. "
+            "Analyze the news velocity, sentiment, and dark pool flow. "
+            "Unless sentiment is severely toxic, lean AGGRESSIVELY towards entering high-momentum breakouts! "
+            "If you decide to trade, output 'PROPOSE_TRADE' on line 1. "
+            "Only if there is zero volume or severe collapse risk, output 'HOLD_CASH' on line 1. "
+            "On line 2, provide a 1-sentence institutional rationale."
         )
 
         user_prompt = (
