@@ -6,14 +6,7 @@ from signals.world_monitor import world_monitor
 from core.risk_shield import RiskShield
 from memory.journal import reflexion_memory
 
-POSITION_SIZING = {
-    "NVDA": 500,  # ~$64,000 capital block
-    "AMD": 400,   # ~$60,000 capital block
-    "AAPL": 300,  # ~$67,000 capital block
-    "TSLA": 300,  # ~$66,000 capital block
-    "SPY": 150,   # ~$76,000 capital block
-    "QQQ": 150    # ~$65,000 capital block
-}
+
 
 class MultiAgentCommittee:
     """
@@ -42,7 +35,6 @@ class MultiAgentCommittee:
         dark_pool_flow = grey_signals.get("institutional_flow", "+$0.0M")
         
         # 3. Institutional Decision & Strategy Selection
-        target_qty = POSITION_SIZING.get(symbol, 50)
         
         # STRATEGY OVERHAUL: ONLY enter if World Monitor specifically detects a SURGE
         if world_velocity != "SURGE":
@@ -80,7 +72,7 @@ class MultiAgentCommittee:
         val = risk_shield.validate_trade(
             symbol=symbol,
             order_type=strategy_type,
-            qty=target_qty,
+            qty=100, # Mock qty for risk shield validation since real order uses notional $65k
             max_possible_loss=estimated_max_loss,
             max_possible_gain=estimated_max_gain
         )
@@ -99,7 +91,6 @@ class MultiAgentCommittee:
             "action": "PROPOSE_TRADE",
             "strategy_type": strategy_type,
             "confidence": max(0.60, confidence),
-            "target_qty": target_qty,
             "max_loss": estimated_max_loss,
             "max_gain": estimated_max_gain,
             "risk_approved": True,

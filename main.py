@@ -12,16 +12,9 @@ from brain.committee import committee
 from brain.exit_predictor import exit_predictor
 from memory.journal import reflexion_memory
 from dashboard.app import app, add_console_log
+from signals.screener_agent import screener_agent
 
-# Dynamic Institutional Capital Allocation ($25k - $45k trade blocks)
-POSITION_SIZING = {
-    "NVDA": 150,  # ~$31,800 capital block
-    "AMD": 100,   # ~$47,600 capital block
-    "AAPL": 150,  # ~$46,300 capital block
-    "TSLA": 120,  # ~$42,300 capital block
-    "SPY": 50,    # ~$38,200 capital block
-    "QQQ": 50     # ~$35,400 capital block
-}
+
 
 def run_dashboard_server():
     """Run Flask Web Dashboard in background thread."""
@@ -67,6 +60,10 @@ def main_loop():
         scan_cycle = 1
         while True:
             print(f"\n--- [SCAN CYCLE #{scan_cycle}] ---")
+            
+            # 0. DYNAMIC PRE-MARKET/MARKET SCREENER
+            config.TARGET_SYMBOLS = screener_agent.get_dynamic_targets()
+            
             account = alpaca_client.get_account_summary()
             
             # Fetch current open positions
@@ -106,15 +103,13 @@ def main_loop():
                     strat = decision.get("strategy_type")
                     conf = decision.get("confidence", 0.75)
                     audit = decision.get("audit_trail", {})
-                    trade_qty = POSITION_SIZING.get(symbol, 50)
-                    
                     # Record entry in Reflexion Memory
                     entry_id = reflexion_memory.record_entry(symbol, strat, conf, audit)
                     print(f"🧠 REFLEXION MEMORY LOGGED: {entry_id}")
                     
-                    print(f"⚡ EXECUTING INSTITUTIONAL ALPHA ORDER: {trade_qty} shares of {symbol} ({strat})...")
-                    exec_res = alpaca_client.submit_paper_trade(symbol, side="buy", qty=trade_qty)
-                    add_console_log(f"ORDER_EXEC: Submitted order for {trade_qty} shares of {symbol} ({strat}).")
+                    print(f"⚡ EXECUTING INSTITUTIONAL ALPHA ORDER: $65,000 block of {symbol} ({strat})...")
+                    exec_res = alpaca_client.submit_paper_trade(symbol, side="buy", notional=65000.0)
+                    add_console_log(f"ORDER_EXEC: Submitted order for $65,000 block of {symbol} ({strat}).")
                     print(f"    Result: {exec_res}")
                 elif symbol in existing_symbols:
                     print(f"    [HOLDING ACTIVE POSITION] {symbol} active in portfolio. Monitoring price momentum.")
