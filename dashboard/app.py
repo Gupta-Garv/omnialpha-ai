@@ -644,9 +644,7 @@ def get_state():
                 l["lesson_learned"] = f"Intraday price drift -${abs(pnl):.2f}. Applying 5% confidence penalty for next entry."
 
     if not SYSTEM_STATE["kill_switch_engaged"]:
-        for sym in config.TARGET_SYMBOLS:
-            eval_res = committee.evaluate_opportunity(sym, account)
-            signals.append(eval_res)
+        signals = SYSTEM_STATE.get("recent_signals", [])
 
     if account:
         account["equity"] = round(simulated_equity, 2)

@@ -63,7 +63,7 @@ class WorldMonitorAgent:
         if self.client and config.is_market_open():
             try:
                 response = self.client.models.generate_content(
-                    model="gemini-2.5-pro",
+                    model="gemini-3.6-flash",
                     contents=prediction_prompt
                 )
                 if response and response.text:

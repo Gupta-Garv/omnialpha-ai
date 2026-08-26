@@ -2,6 +2,12 @@ import time
 import threading
 from typing import List, Dict, Any, Optional
 from openai import OpenAI
+from config import config
+try:
+    from google import genai
+    HAS_GEMINI = True
+except ImportError:
+    HAS_GEMINI = False
 
 class DeepSeekRouter:
     """
@@ -72,6 +78,21 @@ class DeepSeekRouter:
             return completion.choices[0].message.content.strip()
         except Exception as e:
             print(f"❌ DEEPSEEK API ERROR on Key {idx}: {str(e)}")
+            
+            # FALLBACK TO GEMINI
+            if HAS_GEMINI and config.GEMINI_API_KEY:
+                try:
+                    print(f"🔄 FALLING BACK TO GEMINI for this request...")
+                    gemini_client = genai.Client(api_key=config.GEMINI_API_KEY)
+                    gemini_prompt = f"{system_prompt}\n\n{prompt}"
+                    response = gemini_client.models.generate_content(
+                        model="gemini-3.6-flash",
+                        contents=gemini_prompt
+                    )
+                    return response.text.strip() if response and response.text else ""
+                except Exception as gemini_e:
+                    print(f"❌ GEMINI FALLBACK ALSO FAILED: {str(gemini_e)}")
+            
             return ""
 
 deepseek_router = DeepSeekRouter()

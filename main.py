@@ -89,12 +89,18 @@ def main_loop():
                     except Exception as e:
                         print(f"    Exit Order Note: {str(e)}")
 
-
-            # 3. MULTI-AGENT COMMITTEE ENTRY EVALUATION
+            current_signals = []
+            
+            # 2. DYNAMIC ALPHA HUNTER
             for symbol in config.TARGET_SYMBOLS:
+                # Add local safety limits
+                if len(existing_symbols) >= 6 and symbol not in existing_symbols:
+                    continue
+                    
                 decision = committee.evaluate_opportunity(symbol, account)
                 action = decision.get("action")
                 reason = decision.get("reason")
+                current_signals.append(decision)
                 
                 print(f"[{symbol}] Action: {action} | Reason: {reason}")
                 
@@ -113,6 +119,9 @@ def main_loop():
                     print(f"    Result: {exec_res}")
                 elif symbol in existing_symbols:
                     print(f"    [HOLDING ACTIVE POSITION] {symbol} active in portfolio. Monitoring price momentum.")
+
+            from dashboard.app import SYSTEM_STATE
+            SYSTEM_STATE["recent_signals"] = current_signals
 
             scan_cycle += 1
             print(f"\nSleeping 2 seconds before next scan cycle...")
