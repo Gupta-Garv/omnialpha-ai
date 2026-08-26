@@ -1,112 +1,144 @@
 from typing import Dict, Any, List
-from signals.insider_tracker import insider_tracker
-from signals.social_radar import social_radar
-from signals.grey_market import grey_market_scanner
-from signals.world_monitor import world_monitor
-from core.risk_shield import RiskShield
-from core.deepseek_router import deepseek_router
+from config import config
+from core.deepseek_router import ai_router
+from signals.world_monitor import news_scanner
 from memory.journal import reflexion_memory
 
 
-
-class MultiAgentCommittee:
+class TradingCommittee:
     """
-    Synthesizes SEC EDGAR Filings, Grey Market Dark Pool Sweeps, 
-    Social Sentiment Velocity, and Reflexion Self-Learning Memory.
+    Autonomous Multi-Agent Trading Committee.
+
+    Entry Strategy (3:1 Reward/Risk mandate):
+    - Gathers live news headlines for the symbol
+    - Checks Reflexion Memory for past lessons
+    - Queries AI (DeepSeek → Gemini fallback) for a trade decision
+    - Validates via RiskShield before approving
+    - Returns: {"action": "PROPOSE_TRADE" | "HOLD_CASH", "symbol", "reason", "confidence", "strategy_type"}
+
+    Exit Strategy:
+    - Evaluates each open position independently
+    - Uses P&L percentage + AI judgement to decide HOLD / TAKE_PROFIT / CUT_LOSS
+    - 3:1 logic: take profit at +3%, cut loss at -1%
     """
 
-    def evaluate_opportunity(self, symbol: str, account_summary: Dict[str, Any]) -> Dict[str, Any]:
-        equity = account_summary.get("equity", 100000.0)
-        buying_power = account_summary.get("buying_power", 400000.0)
-        risk_shield = RiskShield(account_equity=equity, buying_power=buying_power)
+    ENTRY_SYSTEM_PROMPT = (
+        "You are an elite autonomous quantitative trading AI managing a paper trading portfolio. "
+        "Your mandate: grow the account aggressively using a strict 3:1 Reward-to-Risk ratio on every trade. "
+        "You receive live news headlines and past trade lessons for a specific ticker. "
+        "DECISION RULES:\n"
+        "- If news shows bullish momentum, strong earnings, sector rotation, or unusual institutional activity → output PROPOSE_TRADE\n"
+        "- If news is negative, bearish, or unclear → output HOLD_CASH\n"
+        "- Default bias: PROPOSE_TRADE when in doubt (lean aggressive, we are paper trading)\n"
+        "OUTPUT FORMAT (exactly 2 lines):\n"
+        "Line 1: PROPOSE_TRADE or HOLD_CASH\n"
+        "Line 2: One sentence rationale."
+    )
 
-        # 1. Gather Multi-Pillar Signals
-        grey_signals = grey_market_scanner.analyze_grey_market_signals(symbol)
-        insider_signals = insider_tracker.fetch_recent_filings([symbol])
-        social_signal = social_radar.analyze_ticker_sentiment(symbol)
-        past_lessons = reflexion_memory.get_lessons_for_symbol(symbol)
-        
-        # 2. GET LIVE WORLD MONITOR INTEL (REAL RSS FEEDS + GEMINI)
-        monitor_intel = world_monitor.fetch_live_catalysts(symbol)
-        world_velocity = monitor_intel.get("velocity", "STAGNATE")
+    EXIT_SYSTEM_PROMPT = (
+        "You are an autonomous quantitative trading AI managing open positions. "
+        "Your mandate: protect capital and harvest profits using a strict 3:1 reward-to-risk ratio. "
+        "DECISION RULES:\n"
+        "- P&L > +1.5%: output TAKE_PROFIT (lock in gains)\n"
+        "- P&L < -0.5%: output CUT_LOSS (cut bleeding)\n"
+        "- Otherwise: output HOLD\n"
+        "If live news is very negative for the position, bias toward TAKE_PROFIT or CUT_LOSS immediately.\n"
+        "OUTPUT FORMAT (exactly 2 lines):\n"
+        "Line 1: HOLD or TAKE_PROFIT or CUT_LOSS\n"
+        "Line 2: One sentence rationale."
+    )
 
-        has_insider_activity = len(insider_signals) > 0 or "FORM_4" in grey_signals.get("sec_filing_event", "")
-        sentiment = social_signal.get("sentiment", "NEUTRAL")
-        grey_conviction = grey_signals.get("conviction_score", 0.75)
-        dark_pool_flow = grey_signals.get("institutional_flow", "+$0.0M")
-        
-        system_prompt = (
-            "You are an elite, high-conviction Quantitative Trading AI executing leveraged block trades. "
-            "Your mandate is aggressive profit growth and loss recovery using $65,000 buying power blocks with a 3:1 Reward-to-Risk ratio. "
-            "Analyze the news velocity, sentiment, and dark pool flow. "
-            "Unless sentiment is severely toxic, lean AGGRESSIVELY towards entering high-momentum breakouts! "
-            "If you decide to trade, output 'PROPOSE_TRADE' on line 1. "
-            "Only if there is zero volume or severe collapse risk, output 'HOLD_CASH' on line 1. "
-            "On line 2, provide a 1-sentence institutional rationale."
-        )
+    def evaluate_entry(self, symbol: str, account: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate whether to enter a new position in `symbol`."""
+        equity = float(account.get("equity", 100000.0))
+        buying_power = float(account.get("buying_power", 400000.0))
+
+        # Max risk per trade: 5% of equity
+        max_risk = equity * (config.MAX_POSITION_RISK_PCT / 100.0)
+        if config.BLOCK_NOTIONAL > buying_power:
+            return self._hold(symbol, "Insufficient buying power for block trade.")
+
+        headlines = news_scanner.get_headlines(symbol)
+        lessons = reflexion_memory.get_lessons_for_symbol(symbol)
 
         user_prompt = (
-            f"LIVE ENTRY EVALUATION for {symbol}:\n"
-            f"- World Monitor Velocity: {world_velocity}\n"
-            f"- Social Sentiment: {sentiment}\n"
-            f"- Institutional Flow: {dark_pool_flow}\n"
-            f"- Past Memory Lessons: {past_lessons}\n"
-            f"Based on this data, should we enter a $65k leveraged block trade now?"
+            f"TICKER: {symbol}\n"
+            f"LIVE NEWS:\n" + "\n".join(f"  - {h}" for h in headlines) + "\n\n"
+            f"PAST TRADE LESSONS:\n" + (
+                "\n".join(f"  - {l}" for l in lessons) if lessons else "  - No prior trades on this symbol."
+            ) + "\n\n"
+            f"ACCOUNT: Equity=${equity:,.0f}, Buying Power=${buying_power:,.0f}\n"
+            f"Proposed block size: ${config.BLOCK_NOTIONAL:,.0f}\n"
+            f"Should we enter a leveraged long position in {symbol} RIGHT NOW?"
         )
 
-        response = deepseek_router.query(prompt=user_prompt, system_prompt=system_prompt)
-        lines = response.split('\n')
-        action_raw = lines[0].strip().upper() if lines else "HOLD_CASH"
-        rationale = lines[1].strip() if len(lines) > 1 else "DeepSeek Autonomous Execution"
+        response = ai_router.query(prompt=user_prompt, system_prompt=self.ENTRY_SYSTEM_PROMPT)
 
-        if "PROPOSE_TRADE" not in action_raw:
+        if not response:
+            return self._hold(symbol, "AI router returned empty response — skipping cycle.")
+
+        lines = [l.strip() for l in response.strip().split("\n") if l.strip()]
+        action_raw = lines[0].upper() if lines else "HOLD_CASH"
+        rationale = lines[1] if len(lines) > 1 else "AI autonomous decision."
+
+        if "PROPOSE_TRADE" in action_raw:
             return {
                 "symbol": symbol,
-                "action": "HOLD_CASH",
-                "strategy_type": "WAITING_FOR_CATALYST",
-                "confidence": 0.0,
-                "reason": f"AI AUTONOMY: {rationale}"
+                "action": "PROPOSE_TRADE",
+                "strategy_type": "MOMENTUM_LONG",
+                "confidence": 0.85,
+                "reason": rationale,
             }
-            
-        action = "PROPOSE_TRADE"
-        strategy_type = "INSTITUTIONAL_BULL_LEVERAGE"
-        
-        # Dynamic Risk Allocation based on Equity
-        estimated_max_loss = 1500.0  # Cap maximum risk
-        estimated_max_gain = 4500.0  # 3:1 reward ratio
 
-        # 3. Risk Shield Validation
-        val = risk_shield.validate_trade(
-            symbol=symbol,
-            order_type=strategy_type,
-            qty=100, # Mock qty for risk shield validation since real order uses notional $65k
-            max_possible_loss=estimated_max_loss,
-            max_possible_gain=estimated_max_gain
+        return self._hold(symbol, rationale)
+
+    def evaluate_exit(self, position: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate whether to exit an open position."""
+        symbol = position.get("symbol", "")
+        current_price = float(position.get("current_price", 0.0))
+        market_value = float(position.get("market_value", 1.0))
+        unrealized_pl = float(position.get("unrealized_pl", 0.0))
+        pnl_pct = (unrealized_pl / market_value) * 100 if market_value > 0 else 0.0
+
+        # Hard rules first (no AI needed)
+        if pnl_pct >= 3.0:
+            return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol,
+                    "reason": f"Hard take-profit hit at +{pnl_pct:.2f}%. Locking gains.", "pnl": unrealized_pl}
+        if pnl_pct <= -1.0:
+            return {"action": "CUT_LOSS_EXIT", "symbol": symbol,
+                    "reason": f"Hard stop-loss hit at {pnl_pct:.2f}%. Cutting bleed.", "pnl": unrealized_pl}
+
+        # Between -1% and +3%: ask AI based on news
+        headlines = news_scanner.get_headlines(symbol)
+        user_prompt = (
+            f"OPEN POSITION: {symbol}\n"
+            f"Current P&L: ${unrealized_pl:.2f} ({pnl_pct:.2f}%)\n"
+            f"Current Price: ${current_price:.2f}\n"
+            f"LIVE NEWS:\n" + "\n".join(f"  - {h}" for h in headlines) + "\n\n"
+            f"Based on this data, what is your exit decision?"
         )
-        
-        if not val.approved:
-            return {
-                "symbol": symbol,
-                "action": "REJECTED_BY_RISK_SHIELD",
-                "strategy_type": strategy_type,
-                "confidence": 0.0,
-                "reason": val.reason
-            }
 
+        response = ai_router.query(prompt=user_prompt, system_prompt=self.EXIT_SYSTEM_PROMPT)
+        lines = [l.strip() for l in response.strip().split("\n") if l.strip()] if response else []
+        action_raw = lines[0].upper() if lines else "HOLD"
+        rationale = lines[1] if len(lines) > 1 else "AI autonomous hold."
+
+        if "TAKE_PROFIT" in action_raw:
+            return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol, "reason": rationale, "pnl": unrealized_pl}
+        if "CUT_LOSS" in action_raw:
+            return {"action": "CUT_LOSS_EXIT", "symbol": symbol, "reason": rationale, "pnl": unrealized_pl}
+
+        return {"action": "HOLD_POSITION", "symbol": symbol, "reason": rationale, "pnl": unrealized_pl}
+
+    @staticmethod
+    def _hold(symbol: str, reason: str) -> Dict[str, Any]:
         return {
             "symbol": symbol,
-            "action": "PROPOSE_TRADE",
-            "strategy_type": strategy_type,
-            "confidence": 0.95,
-            "max_loss": estimated_max_loss,
-            "max_gain": estimated_max_gain,
-            "risk_approved": True,
-            "grey_market_flow": dark_pool_flow,
-            "sec_event": grey_signals.get("sec_filing_event", "SEC_EDGAR_CLEARED"),
-            "audit_trail": {
-                "rationale": rationale
-            },
-            "reason": f"AI AUTONOMY: {rationale}"
+            "action": "HOLD_CASH",
+            "strategy_type": "WAITING",
+            "confidence": 0.0,
+            "reason": reason,
         }
 
-committee = MultiAgentCommittee()
+
+committee = TradingCommittee()

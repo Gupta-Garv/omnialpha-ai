@@ -1,95 +1,93 @@
 import time
 import threading
-from typing import List, Dict, Any, Optional
+from typing import Optional
 from openai import OpenAI
+import httpx
 from config import config
+
 try:
     from google import genai
-    HAS_GEMINI = True
+    _GEMINI_AVAILABLE = True
 except ImportError:
-    HAS_GEMINI = False
+    genai = None
+    _GEMINI_AVAILABLE = False
 
-class DeepSeekRouter:
+
+class AIRouter:
     """
-    Round-robin load balancer for unlimited API rate limits.
-    Distributes traffic across multiple Nvidia NIM DeepSeek V4 Flash keys.
-    Max 35 requests per minute per key to avoid strict 40 RPM limits.
+    Round-robin AI router.
+    Primary: Nvidia NIM DeepSeek V4 Flash (3 keys, 35 RPM each).
+    Fallback: Gemini 3.5 Flash (if DeepSeek returns 404/error).
+    All calls have a hard 20s timeout to prevent the trading loop from hanging.
     """
+
     def __init__(self):
-        self.keys = [
-            "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",
-            "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",
-            "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"
+        self._keys = config.NVIDIA_KEYS
+        # Hard 15s timeout via httpx — the default OpenAI timeout kwarg doesn't work on NIM
+        _timeout = httpx.Timeout(15.0, connect=5.0)
+        self._clients = [
+            OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=k, http_client=httpx.Client(timeout=_timeout))
+            for k in self._keys
         ]
-        self.clients = [
-            OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=key) 
-            for key in self.keys
-        ]
-        
-        # Usage tracking: key_index -> list of timestamps
-        self.usage_history = {i: [] for i in range(len(self.keys))}
-        self.lock = threading.Lock()
-        self.max_rpm = 35
-        self.current_idx = 0
+        self._usage: dict = {i: [] for i in range(len(self._keys))}
+        self._lock = threading.Lock()
+        self._idx = 0
+        self._gemini_client = None
+        if _GEMINI_AVAILABLE and config.GEMINI_API_KEY:
+            try:
+                self._gemini_client = genai.Client(api_key=config.GEMINI_API_KEY)
+            except Exception:
+                pass
 
-    def _get_available_client_index(self) -> int:
-        with self.lock:
+    def _next_client(self) -> tuple[int, OpenAI]:
+        """Return (key_index, client) using round-robin, respecting 35 RPM."""
+        with self._lock:
             now = time.time()
-            
-            # Clean up old history (> 60 seconds)
-            for i in range(len(self.keys)):
-                self.usage_history[i] = [t for t in self.usage_history[i] if now - t < 60]
-                
-            # Find the next available key starting from current_idx
-            for _ in range(len(self.keys)):
-                if len(self.usage_history[self.current_idx]) < self.max_rpm:
-                    idx = self.current_idx
-                    self.usage_history[idx].append(now)
-                    # Advance to next for round-robin
-                    self.current_idx = (self.current_idx + 1) % len(self.keys)
-                    return idx
-                    
-                self.current_idx = (self.current_idx + 1) % len(self.keys)
-                
-            # If all are exhausted, fallback to 0 (might hit rate limit, but better than crashing)
-            # Alternatively, we could sleep, but we want hyper-reactive.
-            print("⚠️ DEEPSEEK ROUTER WARNING: All keys hit 35 RPM. Pushing through Key 0.")
-            self.usage_history[0].append(now)
-            return 0
+            for _ in range(len(self._keys)):
+                self._usage[self._idx] = [t for t in self._usage[self._idx] if now - t < 60]
+                if len(self._usage[self._idx]) < 35:
+                    idx = self._idx
+                    self._usage[idx].append(now)
+                    self._idx = (self._idx + 1) % len(self._keys)
+                    return idx, self._clients[idx]
+                self._idx = (self._idx + 1) % len(self._keys)
+            # All keys exhausted — push through key 0
+            self._usage[0].append(now)
+            return 0, self._clients[0]
 
-    def query(self, prompt: str, system_prompt: str = "You are a quantitative AI agent.") -> str:
-        """Sends a query to DeepSeek V4 Flash using the next available key."""
-        idx = self._get_available_client_index()
-        client = self.clients[idx]
-        
+    def query(self, prompt: str, system_prompt: str = "You are a quantitative AI.") -> str:
+        """
+        Send a prompt. DeepSeek V4 Flash first, Gemini 3.5 Flash fallback.
+        Hard 15s ceiling enforced via httpx — never blocks the trading loop.
+        """
+        idx, client = self._next_client()
         try:
             completion = client.chat.completions.create(
-                model="deepseek-ai/deepseek-v4-flash-0731",
+                model=config.DEEPSEEK_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_tokens=1024
+                max_tokens=512,
             )
             return completion.choices[0].message.content.strip()
         except Exception as e:
-            print(f"❌ DEEPSEEK API ERROR on Key {idx}: {str(e)}")
-            
-            # FALLBACK TO GEMINI
-            if HAS_GEMINI and config.GEMINI_API_KEY:
-                try:
-                    print(f"🔄 FALLING BACK TO GEMINI for this request...")
-                    gemini_client = genai.Client(api_key=config.GEMINI_API_KEY)
-                    gemini_prompt = f"{system_prompt}\n\n{prompt}"
-                    response = gemini_client.models.generate_content(
-                        model="gemini-3.5-flash",
-                        contents=gemini_prompt
-                    )
-                    return response.text.strip() if response and response.text else ""
-                except Exception as gemini_e:
-                    print(f"❌ GEMINI FALLBACK ALSO FAILED: {str(gemini_e)}")
-            
-            return ""
+            print(f"  [ROUTER] DeepSeek key {idx} ({type(e).__name__}). Trying Gemini fallback.")
 
-deepseek_router = DeepSeekRouter()
+        # Gemini Fallback
+        if self._gemini_client:
+            try:
+                full_prompt = f"{system_prompt}\n\n{prompt}"
+                resp = self._gemini_client.models.generate_content(
+                    model=config.GEMINI_FALLBACK_MODEL,
+                    contents=full_prompt,
+                )
+                return resp.text.strip() if resp and resp.text else ""
+            except Exception as ge:
+                print(f"  [ROUTER] Gemini fallback error: {type(ge).__name__}: {str(ge)[:80]}")
+
+        return ""
+
+
+ai_router = AIRouter()

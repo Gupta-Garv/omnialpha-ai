@@ -1,90 +1,46 @@
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
+import time
 from typing import Dict, Any, List
-from config import config
 
-try:
-    from google import genai
-    HAS_GEMINI_GENAI = True
-except ImportError:
-    genai = None
-    HAS_GEMINI_GENAI = False
 
-class WorldMonitorAgent:
+class NewsScanner:
     """
-    World Monitor Agent (Grey Market / News Intel)
-    Actively hunts global live news, grey market chatter, and catalyst events.
-    Uses Gemini Pro to analyze live sentiment and predict impending asset movements.
+    Fetches live Yahoo Finance RSS headlines for a symbol.
+    Results are cached for 5 minutes to avoid hammering the feed on every cycle.
+    Does NOT call any AI — purely data gathering.
     """
+
     def __init__(self):
-        self.client = genai.Client(api_key=config.GEMINI_API_KEY) if HAS_GEMINI_GENAI and config.GEMINI_API_KEY else None
-        self.cache = {}
-        self.cache_ttl = 300  # 5 minutes TTL (Hyper-reactive during active market hours)
+        self._cache: Dict[str, tuple] = {}   # symbol -> (headlines, timestamp)
+        self._ttl = 300  # 5-minute cache
 
-    def fetch_live_catalysts(self, symbol: str) -> Dict[str, Any]:
-        """Fetch live news and predict momentum."""
-        # Simple TTL caching to respect Gemini 50-60% daily token budget (avoids hitting API every 2 seconds)
-        import time
-        current_time = time.time()
-        
-        if symbol in self.cache:
-            cached_data, timestamp = self.cache[symbol]
-            if current_time - timestamp < self.cache_ttl:
-                return cached_data
+    def get_headlines(self, symbol: str) -> List[str]:
+        now = time.time()
+        if symbol in self._cache:
+            headlines, ts = self._cache[symbol]
+            if now - ts < self._ttl:
+                return headlines
 
-        encoded_sym = urllib.parse.quote(symbol)
-        feed_url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={encoded_sym}&region=US&lang=en-US"
-        
+        url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={urllib.parse.quote(symbol)}&region=US&lang=en-US"
         headlines = []
         try:
-            req = urllib.request.Request(feed_url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=3) as response:
-                xml_data = response.read()
-                root = ET.fromstring(xml_data)
-                for item in root.findall('./channel/item')[:5]:
-                    title = item.find('title')
-                    if title is not None and title.text:
-                        headlines.append(title.text)
-        except Exception as e:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=4) as resp:
+                root = ET.fromstring(resp.read())
+                for item in root.findall("./channel/item")[:5]:
+                    t = item.find("title")
+                    if t is not None and t.text:
+                        headlines.append(t.text)
+        except Exception:
             pass
-        
+
         if not headlines:
-            headlines = [f"Institutional dark pool sweeps detected in {symbol} options.", f"Macro sector rotation favors {symbol}."]
+            headlines = [f"No breaking news for {symbol}. Analyzing technical momentum."]
 
-        prediction_prompt = (
-            f"You are the World Monitor AI. Analyze these real-time news headlines for {symbol}: {headlines}.\n"
-            f"Predict the immediate future price movement (Next 5 to 60 seconds). "
-            f"Will it SURGE, COLLAPSE, or STAGNATE? Why? Provide a 1-sentence predictive rationale."
-        )
-        
-        prediction_text = "BULLISH_CONTINUATION"
-        prediction_text = "MARKET_CLOSED_OR_STAGNANT"
-        if self.client and config.is_market_open():
-            try:
-                response = self.client.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=prediction_prompt
-                )
-                if response and response.text:
-                    prediction_text = response.text.strip()
-            except Exception:
-                pass
+        self._cache[symbol] = (headlines, now)
+        return headlines
 
-        velocity = "SURGE"
-        if "COLLAPSE" in prediction_text.upper() or "FALL" in prediction_text.upper() or "DROP" in prediction_text.upper():
-            velocity = "COLLAPSE"
-        elif "STAGNATE" in prediction_text.upper() or "FLAT" in prediction_text.upper():
-            velocity = "STAGNATE"
 
-        result = {
-            "symbol": symbol,
-            "headlines": headlines,
-            "world_prediction": prediction_text,
-            "velocity": velocity
-        }
-        
-        self.cache[symbol] = (result, time.time())
-        return result
-
-world_monitor = WorldMonitorAgent()
+news_scanner = NewsScanner()

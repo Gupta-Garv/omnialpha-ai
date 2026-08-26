@@ -1,146 +1,204 @@
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+"""
+OmniAlpha Autonomous Trading Engine
+====================================
+Single entry point. Starts the Flask dashboard in a background thread,
+then runs the trading loop in the main thread.
 
+Architecture (no circular imports):
+  main.py
+    ├── dashboard/app.py  (Flask server, read-only SYSTEM_STATE access)
+    ├── core/alpaca_client.py
+    ├── brain/committee.py  (entry + exit decisions)
+    ├── signals/screener_agent.py
+    └── memory/journal.py
+"""
+
+import sys
 import time
 import threading
 import requests
-import random
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from config import config
 from core.alpaca_client import alpaca_client
 from brain.committee import committee
-from brain.exit_predictor import exit_predictor
-from memory.journal import reflexion_memory
-from dashboard.app import app, add_console_log
 from signals.screener_agent import screener_agent
+from memory.journal import reflexion_memory
+
+# ── Shared state (dashboard reads from this dict) ──────────────────────────
+SYSTEM_STATE = {
+    "kill_switch_engaged": False,
+    "status": "ACTIVE",
+    "realized_banked_profit": 0.0,
+    "recent_signals": [],
+    "console_logs": [],
+}
+
+EQUITY_HISTORY = []
 
 
+def log(msg: str):
+    """Print to stdout AND push to the dashboard console stream."""
+    from datetime import datetime
+    ts = datetime.now().strftime("%H:%M:%S")
+    entry = f"[{ts}] {msg}"
+    print(entry)
+    SYSTEM_STATE["console_logs"].append(entry)
+    if len(SYSTEM_STATE["console_logs"]) > 50:
+        SYSTEM_STATE["console_logs"].pop(0)
 
-def run_dashboard_server():
-    """Run Flask Web Dashboard in background thread."""
+
+# ── Dashboard Server ────────────────────────────────────────────────────────
+def _start_dashboard():
+    """Run Flask app in a daemon thread."""
+    import importlib.util, os
+    os.environ["OMNI_STATE_MODULE"] = "main"
+    from dashboard.app import app
     app.run(host="0.0.0.0", port=config.PORT, debug=False, use_reloader=False)
 
-def keep_alive_ping():
-    """Periodically ping the web server every 5 minutes to prevent cloud sleeping."""
-    url = "https://omnialpha-ai.onrender.com"
+
+# ── Keep-Alive Ping (Render free tier) ────────────────────────────────────
+def _keep_alive():
     while True:
+        time.sleep(300)
         try:
-            time.sleep(300)
-            requests.get(url, timeout=10)
+            requests.get("https://omnialpha-ai.onrender.com", timeout=10)
         except Exception:
             pass
 
-def run_autonomous_trading_cycle(scan_cycle: int = 1):
-    """Execute a single autonomous trading cycle: screener -> exits -> entries -> signals -> logs."""
-    print(f"\n--- [SCAN CYCLE #{scan_cycle}] ---")
-    
-    # 0. DYNAMIC PRE-MARKET/MARKET SCREENER
-    config.TARGET_SYMBOLS = screener_agent.get_dynamic_targets()
-    
-    account = alpaca_client.get_account_summary()
-    
-    # Fetch current open positions
-    open_positions = alpaca_client.get_positions()
-    existing_symbols = [p.get("symbol") for p in open_positions]
-    
-    # 1. AI EXIT PREDICTOR & DYNAMIC HARVESTING ENGINE
-    for pos in open_positions:
-        sym = pos.get("symbol")
-        eval_exit = exit_predictor.evaluate_position_exit(pos, "BULLISH_VELOCITY")
-        exit_action = eval_exit.get("action")
-        reason = eval_exit.get("reason")
-        pnl = float(pos.get("unrealized_pl", 0.0))
 
-        if exit_action in ["TAKE_PROFIT_EXIT", "CUT_LOSS_EXIT"]:
-            print(f"🎯 AI EXIT SIGNAL [{sym}]: {exit_action} | {reason}")
-            add_console_log(f"AI_EXIT_PREDICTOR: Closing {sym} position (+${pnl:.2f}). Reason: {reason}")
-            try:
-                alpaca_client.client.close_position(sym)
-                if sym in existing_symbols:
-                    existing_symbols.remove(sym)
-                reflexion_memory.record_outcome(sym, pnl_dollars=pnl, pnl_pct=(pnl / float(pos.get("market_value", 1.0))) * 100)
-            except Exception as e:
-                print(f"    Exit Order Note: {str(e)}")
+# ── Core Trading Cycle ─────────────────────────────────────────────────────
+def run_trading_cycle(cycle: int):
+    """
+    One complete trading cycle:
+    1. Screener → update watchlist
+    2. Fetch account & open positions
+    3. AI Exit Predictor → close positions that hit targets
+    4. AI Entry Committee → open new positions where conviction is high
+    5. Update SYSTEM_STATE.recent_signals for the dashboard
+    """
+    if SYSTEM_STATE["kill_switch_engaged"]:
+        log("KILL_SWITCH active — trading halted.")
+        return
 
-    current_signals = []
-    
-    # 2. DYNAMIC ALPHA HUNTER
-    for symbol in config.TARGET_SYMBOLS:
-        # Add local safety limits
-        if len(existing_symbols) >= 6 and symbol not in existing_symbols:
-            continue
-            
-        decision = committee.evaluate_opportunity(symbol, account)
-        action = decision.get("action")
-        reason = decision.get("reason")
-        current_signals.append(decision)
-        
-        print(f"[{symbol}] Action: {action} | Reason: {reason}")
-        add_console_log(f"AI_SCAN [{symbol}]: Action={action}. Reason: {reason[:60]}...")
-        
-        # Execute new trade if symbol is not currently held
-        if action == "PROPOSE_TRADE" and symbol not in existing_symbols:
-            strat = decision.get("strategy_type")
-            conf = decision.get("confidence", 0.75)
-            audit = decision.get("audit_trail", {})
-            # Record entry in Reflexion Memory
-            entry_id = reflexion_memory.record_entry(symbol, strat, conf, audit)
-            print(f"🧠 REFLEXION MEMORY LOGGED: {entry_id}")
-            
-            print(f"⚡ EXECUTING INSTITUTIONAL ALPHA ORDER: $65,000 block of {symbol} ({strat})...")
-            exec_res = alpaca_client.submit_paper_trade(symbol, side="buy", notional=65000.0)
-            add_console_log(f"ORDER_EXEC: Submitted order for $65,000 block of {symbol} ({strat}).")
-            print(f"    Result: {exec_res}")
-        elif symbol in existing_symbols:
-            print(f"    [HOLDING ACTIVE POSITION] {symbol} active in portfolio. Monitoring price momentum.")
+    log(f"=== CYCLE #{cycle} START ===")
 
-    from dashboard.app import SYSTEM_STATE
-    SYSTEM_STATE["recent_signals"] = current_signals
+    # 1. Dynamic Screener (runs at most once per hour)
+    targets = screener_agent.get_targets()
+    config.TARGET_SYMBOLS = targets
+    log(f"Watchlist: {targets}")
 
-def main_loop():
-    print("=" * 60)
-    print("🚀 OmniAlpha AI — Autonomous Paper Trading Agent (Reflexion Memory Active)")
-    print(f"Target Underlyings: {', '.join(config.TARGET_SYMBOLS)}")
-    print(f"Paper Mode: {config.ALPACA_PAPER} | Base URL: {config.BASE_URL}")
-    print("=" * 60)
-
-    # Start Web Dashboard server thread
-    print(f"\n🌐 Starting Visual Web Dashboard at http://localhost:{config.PORT}...")
-    dash_thread = threading.Thread(target=run_dashboard_server, daemon=True)
-    dash_thread.start()
-
-    # Start Keep-Alive Self-Ping thread
-    ping_thread = threading.Thread(target=keep_alive_ping, daemon=True)
-    ping_thread.start()
-    time.sleep(1.5)
-
+    # 2. Account & Positions
     account = alpaca_client.get_account_summary()
     if "error" in account:
-        print(f"⚠️ Account Connect Note: {account['error']}")
-    else:
-        print(f"Connected Account Equity: ${account.get('equity', 0):,.2f}")
-        print(f"Buying Power: ${account.get('buying_power', 0):,.2f}")
+        log(f"Account error: {account['error']}")
+        return
 
-    print("\n[LIVE MONITORING LOOP ACTIVE] Scanning signals & executing paper trades with Self-Learning Memory...")
-    
-    try:
-        scan_cycle = 1
-        while True:
-            run_autonomous_trading_cycle(scan_cycle)
-            scan_cycle += 1
-            print(f"\nSleeping 10 seconds before next scan cycle...")
-            time.sleep(10)
-            
-    except KeyboardInterrupt:
-        print("\nHalting OmniAlpha AI System... Goodbye!")
-    except Exception as e:
-        print(f"\nCRITICAL ERROR IN MAIN LOOP: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        
-        # Don't let the script die entirely in production, just wait and retry
-        time.sleep(10)
-        main_loop()
+    equity = float(account.get("equity", 0))
+    buying_power = float(account.get("buying_power", 0))
+    log(f"Equity=${equity:,.2f}  Buying Power=${buying_power:,.2f}")
+
+    # Append equity to chart history
+    from datetime import datetime
+    EQUITY_HISTORY.append({"time": datetime.now().strftime("%H:%M:%S"), "equity": round(equity, 2)})
+    if len(EQUITY_HISTORY) > 60:
+        EQUITY_HISTORY.pop(0)
+
+    open_positions = alpaca_client.get_positions()
+    held_symbols = {p["symbol"] for p in open_positions}
+
+    # 3. Exit Predictor
+    realized_gain = 0.0
+    for pos in open_positions:
+        sym = pos["symbol"]
+        decision = committee.evaluate_exit(pos)
+        action = decision["action"]
+        pnl = decision["pnl"]
+        reason = decision["reason"]
+        log(f"  EXIT [{sym}] → {action} | P&L=${pnl:.2f} | {reason}")
+
+        if action in ("TAKE_PROFIT_EXIT", "CUT_LOSS_EXIT"):
+            try:
+                alpaca_client.client.close_position(sym)
+                held_symbols.discard(sym)
+                reflexion_memory.record_outcome(
+                    symbol=sym,
+                    pnl_dollars=pnl,
+                    pnl_pct=(pnl / float(pos.get("market_value", 1))) * 100,
+                )
+                realized_gain += pnl
+                log(f"  ✅ CLOSED {sym}: ${pnl:+.2f}")
+            except Exception as e:
+                log(f"  ⚠️  Close failed for {sym}: {e}")
+
+    SYSTEM_STATE["realized_banked_profit"] = round(
+        SYSTEM_STATE.get("realized_banked_profit", 0.0) + realized_gain, 2
+    )
+
+    # 4. Entry Evaluator
+    current_signals = []
+    for sym in targets:
+        if sym in held_symbols:
+            log(f"  ENTRY [{sym}] → already held, skipping.")
+            current_signals.append({"symbol": sym, "action": "HOLD_POSITION", "reason": "Already in portfolio.", "confidence": 0, "strategy_type": "HOLDING"})
+            continue
+
+        if len(held_symbols) >= 6:
+            log(f"  ENTRY [{sym}] → max positions (6) reached.")
+            break
+
+        decision = committee.evaluate_entry(sym, account)
+        action = decision["action"]
+        reason = decision["reason"]
+        log(f"  ENTRY [{sym}] → {action} | {reason}")
+        current_signals.append(decision)
+
+        if action == "PROPOSE_TRADE":
+            result = alpaca_client.submit_paper_trade(sym, side="buy", notional=config.BLOCK_NOTIONAL)
+            if result.get("status") in ("SUBMITTED", "SUBMITTED_PAPER"):
+                held_symbols.add(sym)
+                reflexion_memory.record_entry(sym, decision.get("strategy_type", "MOMENTUM_LONG"), decision.get("confidence", 0.85))
+                log(f"  🚀 ORDER SENT: {sym} ${config.BLOCK_NOTIONAL:,.0f} | ID={result.get('order_id','?')}")
+            else:
+                log(f"  ⚠️  Order failed for {sym}: {result}")
+
+    SYSTEM_STATE["recent_signals"] = current_signals
+    log(f"=== CYCLE #{cycle} END ===\n")
+
+
+# ── Main Loop ──────────────────────────────────────────────────────────────
+def main():
+    print("=" * 60)
+    print("🚀  OmniAlpha Autonomous Trading Engine")
+    print(f"    Paper Mode: {config.ALPACA_PAPER}")
+    print(f"    Block Size: ${config.BLOCK_NOTIONAL:,.0f}")
+    print(f"    Dashboard:  http://0.0.0.0:{config.PORT}")
+    print("=" * 60)
+
+    # Boot dashboard in background
+    threading.Thread(target=_start_dashboard, daemon=True).start()
+    threading.Thread(target=_keep_alive, daemon=True).start()
+    time.sleep(2)  # Let Flask start
+
+    log("SYS_INIT: OmniAlpha engine online.")
+
+    cycle = 1
+    while True:
+        try:
+            run_trading_cycle(cycle)
+            cycle += 1
+        except KeyboardInterrupt:
+            log("SHUTDOWN: KeyboardInterrupt received.")
+            break
+        except Exception as e:
+            import traceback
+            log(f"CYCLE ERROR: {e}")
+            traceback.print_exc()
+
+        time.sleep(15)  # 15s between cycles → well within Gemini free-tier limits
+
 
 if __name__ == "__main__":
-    main_loop()
+    main()
