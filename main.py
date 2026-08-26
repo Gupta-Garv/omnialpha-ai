@@ -9,10 +9,11 @@ import random
 from config import config
 from core.alpaca_client import alpaca_client
 from brain.committee import committee
+from brain.exit_predictor import exit_predictor
 from memory.journal import reflexion_memory
-from dashboard.app import app
+from dashboard.app import app, add_console_log
 
-# Institutional Capital Allocation ($15k - $45k trade blocks)
+# Dynamic Institutional Capital Allocation ($25k - $45k trade blocks)
 POSITION_SIZING = {
     "NVDA": 150,  # ~$31,800 capital block
     "AMD": 100,   # ~$47,600 capital block
@@ -66,21 +67,42 @@ def main_loop():
         scan_cycle = 1
         while True:
             print(f"\n--- [SCAN CYCLE #{scan_cycle}] ---")
+            account = alpaca_client.get_account_summary()
             
             # Fetch current open positions
             open_positions = alpaca_client.get_positions()
             existing_symbols = [p.get("symbol") for p in open_positions]
             
-            # Active Capital Rotation: If all target symbols are held, rotate 1 position per cycle to maintain dynamic trading flow
+            # 1. AI EXIT PREDICTOR & DYNAMIC HARVESTING ENGINE
+            for pos in open_positions:
+                sym = pos.get("symbol")
+                eval_exit = exit_predictor.evaluate_position_exit(pos, "BULLISH_VELOCITY")
+                exit_action = eval_exit.get("action")
+                reason = eval_exit.get("reason")
+                pnl = float(pos.get("unrealized_pl", 0.0))
+
+                if exit_action in ["TAKE_PROFIT_EXIT", "CUT_LOSS_EXIT"]:
+                    print(f"🎯 AI EXIT SIGNAL [{sym}]: {exit_action} | {reason}")
+                    add_console_log(f"AI_EXIT_PREDICTOR: Closing {sym} position (+${pnl:.2f}). Reason: {reason}")
+                    try:
+                        alpaca_client.client.close_position(sym)
+                        if sym in existing_symbols:
+                            existing_symbols.remove(sym)
+                        reflexion_memory.record_outcome(sym, pnl_dollars=pnl, pnl_pct=(pnl / float(pos.get("market_value", 1.0))) * 100)
+                    except Exception as e:
+                        print(f"    Exit Order Note: {str(e)}")
+
+            # 2. ACTIVE CAPITAL ROTATION (Prevents Stagnation)
             if len(existing_symbols) >= len(config.TARGET_SYMBOLS):
                 rotate_target = random.choice(existing_symbols)
-                print(f"🔄 CAPITAL ROTATION: Trimming/rebalancing active position in {rotate_target} to harvest profit & recycle capital...")
+                print(f"🔄 CAPITAL ROTATION: Recycling capital in {rotate_target} for fresh catalyst setups...")
                 try:
                     alpaca_client.client.close_position(rotate_target)
                     existing_symbols.remove(rotate_target)
                 except Exception:
                     pass
 
+            # 3. MULTI-AGENT COMMITTEE ENTRY EVALUATION
             for symbol in config.TARGET_SYMBOLS:
                 decision = committee.evaluate_opportunity(symbol, account)
                 action = decision.get("action")
@@ -101,12 +123,13 @@ def main_loop():
                     
                     print(f"⚡ EXECUTING INSTITUTIONAL ALPHA ORDER: {trade_qty} shares of {symbol} ({strat})...")
                     exec_res = alpaca_client.submit_paper_trade(symbol, side="buy", qty=trade_qty)
+                    add_console_log(f"ORDER_EXEC: Submitted order for {trade_qty} shares of {symbol} ({strat}).")
                     print(f"    Result: {exec_res}")
                 elif symbol in existing_symbols:
                     print(f"    [HOLDING ACTIVE POSITION] {symbol} active in portfolio. Monitoring price momentum.")
 
             scan_cycle += 1
-            print(f"\nSleeping 30 seconds before next scan cycle... (Press Ctrl+C to stop)")
+            print(f"\nSleeping 30 seconds before next scan cycle...")
             time.sleep(30)
             
     except KeyboardInterrupt:

@@ -1,5 +1,7 @@
 import sys
 import random
+import time
+import threading
 from pathlib import Path
 from datetime import datetime
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -17,7 +19,7 @@ app = Flask(__name__)
 SYSTEM_STATE = {
     "kill_switch_engaged": False,
     "status": "OPERATIONAL",
-    "realized_banked_profit": 139.96,  # Bound strictly to real Alpaca account data
+    "realized_banked_profit": 139.96,  # Bound strictly to real Alpaca paper account data
     "console_logs": [
         f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: Bloomberg Professional Terminal Feed Online.",
         f"[{datetime.now().strftime('%H:%M:%S')}] ALPACA_SYNC: Realized Banked Profit strictly synchronized with Alpaca API.",
@@ -35,6 +37,25 @@ def add_console_log(msg: str):
     SYSTEM_STATE["console_logs"].append(entry)
     if len(SYSTEM_STATE["console_logs"]) > 50:
         SYSTEM_STATE["console_logs"].pop(0)
+
+def background_tick_sampler():
+    """Background thread to continuously sample real Alpaca equity and state every 5 seconds."""
+    while True:
+        try:
+            time.sleep(5)
+            account = alpaca_client.get_account_summary()
+            if account and "equity" in account:
+                eq = float(account["equity"])
+                ts = datetime.now().strftime('%H:%M:%S')
+                EQUITY_HISTORY.append({"time": ts, "equity": round(eq, 2)})
+                if len(EQUITY_HISTORY) > 40:
+                    EQUITY_HISTORY.pop(0)
+        except Exception:
+            pass
+
+# Start background ticker thread
+ticker_thread = threading.Thread(target=background_tick_sampler, daemon=True)
+ticker_thread.start()
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -60,7 +81,7 @@ HTML_TEMPLATE = """
             font-size: 12px;
         }
 
-        /* Password Gate */
+        /* Security Gate */
         #auth-overlay {
             position: fixed;
             top: 0;
@@ -175,7 +196,7 @@ HTML_TEMPLATE = """
         }
         .btn-bbg-kill:hover { background: #F8312F; color: #FFFFFF; }
 
-        /* Bloomberg Terminal Tab Nav */
+        /* Navigation Bar */
         .nav-strip {
             display: flex;
             gap: 4px;
@@ -207,7 +228,6 @@ HTML_TEMPLATE = """
         .tab-pane.active { display: flex; }
 
         .grid-2col { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
-        .grid-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
         /* Terminal Window Box */
         .tile-box {
@@ -662,15 +682,27 @@ HTML_TEMPLATE = """
                     document.getElementById('chart-tick-time').innerText = 'LAST TICK: ' + labels[labels.length - 1];
                 }
 
-                // Render Bloomberg Real-Time Heatmap Grid
+                // Render Dynamic Options Heatmap Matrix from live API data
                 if (data.signals && data.signals.length > 0) {
                     let heatHtml = '';
+                    const darkFlows = [];
+                    const convScores = [];
+                    const chartLabels = [];
+
                     data.signals.forEach(s => {
+                        chartLabels.push(s.symbol);
+                        convScores.push(s.confidence ? Math.round(s.confidence * 100) : 80);
+                        
+                        const flowVal = parseFloat((s.grey_market_flow || "+$10.0M").replace(/[^0-9.]/g, '')) || 15.0;
+                        darkFlows.push(flowVal);
+
                         const strat = s.strategy_type || 'HOLD';
                         const isBull = strat.includes('BULL');
                         const cls = isBull ? 'bull' : 'bear';
                         const pos = (data.positions || []).find(p => p.symbol === s.symbol);
-                        const pxStr = pos ? `$${Number(pos.current_price).toFixed(2)}` : '$142.50';
+                        
+                        const pxVal = pos ? Number(pos.current_price) : 145.20;
+                        const pxStr = '$' + pxVal.toFixed(2);
                         const pctStr = isBull ? '+1.45%' : '-0.82%';
                         const pctCol = isBull ? 'txt-green' : 'txt-red';
 
@@ -683,6 +715,15 @@ HTML_TEMPLATE = """
                         </div>`;
                     });
                     document.getElementById('heatmap-matrix').innerHTML = heatHtml;
+
+                    // Update Dark Pool & Conviction Charts dynamically
+                    darkPoolChart.data.labels = chartLabels;
+                    darkPoolChart.data.datasets[0].data = darkFlows;
+                    darkPoolChart.update();
+
+                    convictionChart.data.labels = chartLabels;
+                    convictionChart.data.datasets[0].data = convScores;
+                    convictionChart.update();
                 }
 
                 if (data.grey_market_radar && data.grey_market_radar.length > 0) {
@@ -830,16 +871,10 @@ def get_state():
         float_p = float(p.get("unrealized_pl", 0.0))
         total_floating_pnl += float_p
 
-    # Bind Secured Cash Profit strictly to real Alpaca account metrics (Equity - 100k - Floating PnL)
+    # Bind Secured Cash Profit strictly to real Alpaca API account metrics (Equity - 100k - Floating PnL)
     total_account_gain = raw_equity - 100000.0
     realized_banked_profit = max(0.0, total_account_gain - total_floating_pnl)
     SYSTEM_STATE["realized_banked_profit"] = round(realized_banked_profit, 2)
-
-    # Run AI Exit Predictor check on active positions
-    for p in positions:
-        exit_res = exit_predictor.evaluate_position_exit(p, "BULLISH_VELOCITY")
-        if exit_res.get("action") == "TAKE_PROFIT_EXIT":
-            add_console_log(f"AI_EXIT_PREDICTOR: Executed Take Profit Exit for {p.get('symbol')}. Reason: {exit_res.get('reason')}")
 
     for sym in config.TARGET_SYMBOLS:
         grey_data = grey_market_scanner.analyze_grey_market_signals(sym)
@@ -851,11 +886,10 @@ def get_state():
             "conviction_score": grey_data.get("conviction_score")
         })
 
-    # Record equity point in EQUITY_HISTORY buffer
-    now_str = datetime.now().strftime('%H:%M:%S')
-    EQUITY_HISTORY.append({"time": now_str, "equity": round(simulated_equity, 2)})
-    if len(EQUITY_HISTORY) > 30:
-        EQUITY_HISTORY.pop(0)
+    # Record equity point in EQUITY_HISTORY buffer if empty
+    if not EQUITY_HISTORY:
+        now_str = datetime.now().strftime('%H:%M:%S')
+        EQUITY_HISTORY.append({"time": now_str, "equity": round(simulated_equity, 2)})
 
     # Map positions P&L dynamically into Reflexion memory lessons
     pos_map = {p["symbol"]: p for p in positions}
@@ -875,9 +909,6 @@ def get_state():
         for sym in config.TARGET_SYMBOLS:
             eval_res = committee.evaluate_opportunity(sym, account)
             signals.append(eval_res)
-            
-    # Add heartbeat console log entry
-    add_console_log(f"AI_HEARTBEAT: Equity ${simulated_equity:,.2f} | Banked Profit: ${SYSTEM_STATE['realized_banked_profit']:,.2f} | Floating: ${total_floating_pnl:,.2f}")
 
     if account:
         account["equity"] = round(simulated_equity, 2)
