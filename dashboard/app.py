@@ -22,7 +22,8 @@ SYSTEM_STATE = {
         f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: OmniAlpha Institutional Options Engine Online.",
         f"[{datetime.now().strftime('%H:%M:%S')}] GEMINI_AI: Deep Gemini Reasoning & AI Exit Predictor Engaged.",
         f"[{datetime.now().strftime('%H:%M:%S')}] BANKED_PROFIT: Dual-Tier Profit Accounting Active ($145.33 Banked Cash).",
-        f"[{datetime.now().strftime('%H:%M:%S')}] GREY_MARKET: Dark Pool Sweep & SEC EDGAR Pre-Catalyst Radar Online."
+        f"[{datetime.now().strftime('%H:%M:%S')}] GREY_MARKET: Dark Pool Sweep & SEC EDGAR Pre-Catalyst Radar Online.",
+        f"[{datetime.now().strftime('%H:%M:%S')}] UI_DESK: Multi-Tab Institutional Command Center Active."
     ]
 }
 
@@ -59,7 +60,7 @@ HTML_TEMPLATE = """
             gap: 16px;
         }
 
-        /* Full Screen Security Overlay */
+        /* Security Lock Screen */
         #auth-overlay {
             position: fixed;
             top: 0;
@@ -87,19 +88,8 @@ HTML_TEMPLATE = """
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
 
-        .auth-title {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #FFFFFF;
-            letter-spacing: 1.5px;
-            text-align: center;
-        }
-
-        .auth-sub {
-            font-size: 0.7rem;
-            color: #64748B;
-            text-align: center;
-        }
+        .auth-title { font-size: 0.9rem; font-weight: 700; color: #FFFFFF; letter-spacing: 1.5px; text-align: center; }
+        .auth-sub { font-size: 0.7rem; color: #64748B; text-align: center; }
 
         .auth-input {
             background: #04060A;
@@ -112,9 +102,7 @@ HTML_TEMPLATE = """
             text-align: center;
             letter-spacing: 2px;
         }
-        .auth-input:focus {
-            border-color: #00FF66;
-        }
+        .auth-input:focus { border-color: #00FF66; }
 
         .auth-btn {
             background: #00FF66;
@@ -128,17 +116,11 @@ HTML_TEMPLATE = """
             letter-spacing: 1.5px;
             transition: all 0.15s ease;
         }
-        .auth-btn:hover {
-            background: #00CC52;
-        }
+        .auth-btn:hover { background: #00CC52; }
 
-        .auth-err {
-            font-size: 0.7rem;
-            color: #FF3344;
-            text-align: center;
-            min-height: 16px;
-        }
+        .auth-err { font-size: 0.7rem; color: #FF3344; text-align: center; min-height: 16px; }
 
+        /* Top Header Bar */
         .top-bar {
             display: flex;
             justify-content: space-between;
@@ -159,36 +141,12 @@ HTML_TEMPLATE = """
             gap: 12px;
         }
 
-        .bar-title span {
-            font-size: 0.75rem;
-            color: #64748B;
-            font-weight: 400;
-        }
+        .bar-title span { font-size: 0.75rem; color: #64748B; font-weight: 400; }
 
-        .metrics-row {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .metric-item {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-        }
-
-        .metric-label {
-            font-size: 0.62rem;
-            color: #64748B;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .metric-val {
-            font-size: 1.0rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
+        .metrics-row { display: flex; gap: 16px; align-items: center; }
+        .metric-item { display: flex; flex-direction: column; align-items: flex-end; }
+        .metric-label { font-size: 0.62rem; color: #64748B; letter-spacing: 1px; text-transform: uppercase; }
+        .metric-val { font-size: 1.0rem; font-weight: 700; letter-spacing: 0.5px; }
 
         .txt-green { color: #00FF66; }
         .txt-red { color: #FF3344; }
@@ -207,10 +165,7 @@ HTML_TEMPLATE = """
             letter-spacing: 1px;
             transition: all 0.15s ease;
         }
-        .btn-action:hover {
-            background: #00FF66;
-            color: #000000;
-        }
+        .btn-action:hover { background: #00FF66; color: #000000; }
 
         .btn-kill {
             background: #1A0507;
@@ -224,16 +179,44 @@ HTML_TEMPLATE = """
             letter-spacing: 1px;
             transition: all 0.15s ease;
         }
-        .btn-kill:hover {
-            background: #FF3344;
-            color: #000000;
+        .btn-kill:hover { background: #FF3344; color: #000000; }
+
+        /* Navigation Tab Bar */
+        .tab-bar {
+            display: flex;
+            gap: 8px;
+            background: #090D14;
+            border: 1px solid #1E2638;
+            padding: 6px 12px;
         }
 
-        .grid-main {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 16px;
+        .tab-btn {
+            background: #04060A;
+            border: 1px solid #1E2638;
+            color: #94A3B8;
+            padding: 8px 16px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.15s ease;
         }
+
+        .tab-btn.active {
+            background: #0D1B13;
+            border-color: #00FF66;
+            color: #00FF66;
+        }
+
+        .tab-btn:hover { color: #FFFFFF; }
+
+        /* Tab Content Container */
+        .tab-content { display: none; flex-direction: column; gap: 16px; }
+        .tab-content.active { display: flex; }
+
+        .grid-main { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+        .grid-half { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
         .panel {
             background-color: #090D14;
@@ -257,75 +240,33 @@ HTML_TEMPLATE = """
             text-transform: uppercase;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 0.65rem; color: #64748B; letter-spacing: 1px; text-transform: uppercase; padding: 8px 6px; border-bottom: 1px solid #1E2638; }
+        td { font-size: 0.8rem; padding: 10px 6px; border-bottom: 1px solid #121824; white-space: nowrap; }
 
-        th {
-            text-align: left;
-            font-size: 0.65rem;
-            color: #64748B;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            padding: 8px 6px;
-            border-bottom: 1px solid #1E2638;
-        }
-
-        td {
-            font-size: 0.8rem;
-            padding: 10px 6px;
-            border-bottom: 1px solid #121824;
-            white-space: nowrap;
-        }
-
-        .watch-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-
-        .watch-card {
-            background: #0D131F;
-            border: 1px solid #1E2638;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .watch-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
+        .watch-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .watch-card { background: #0D131F; border: 1px solid #1E2638; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+        .watch-top { display: flex; justify-content: space-between; align-items: center; }
         .watch-sym { font-weight: 700; font-size: 0.9rem; color: #FFFFFF; }
         .watch-sig { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.5px; }
-
-        .watch-details {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.7rem;
-            color: #64748B;
-        }
+        .watch-details { display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748B; }
 
         .console-box {
             background-color: #04060A;
             border: 1px solid #121824;
-            padding: 12px;
-            font-size: 0.75rem;
+            padding: 14px;
+            font-size: 0.78rem;
             color: #00FF66;
-            height: 140px;
+            height: 480px;
             overflow-y: auto;
-            line-height: 1.6;
+            line-height: 1.7;
             font-family: 'Space Mono', monospace;
         }
     </style>
 </head>
 <body>
 
-    <!-- Security Authentication Lock Screen Overlay -->
+    <!-- Security Overlay -->
     <div id="auth-overlay">
         <div class="auth-card">
             <div class="auth-title">OMNIALPHA DESK // SECURITY GATE</div>
@@ -353,7 +294,7 @@ HTML_TEMPLATE = """
             </div>
             <div class="metric-item">
                 <div class="metric-label">LIVE FLOATING P&L</div>
-                <div class="metric-val txt-green" id="floating-pnl">+$0.00 (VARIABLE TIK)</div>
+                <div class="metric-val txt-green" id="floating-pnl">+$0.00 (VARIABLE TICK)</div>
             </div>
             <div class="metric-item">
                 <div class="metric-label">BUYING POWER</div>
@@ -368,126 +309,192 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <!-- Main Grid: Chart & Watchlist -->
-    <div class="grid-main">
+    <!-- Navigation Tabs Bar -->
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('tab-main')">📊 MAIN OVERVIEW</button>
+        <button class="tab-btn" onclick="switchTab('tab-grey')">🕵️ GREY MARKET & SEC EDGAR</button>
+        <button class="tab-btn" onclick="switchTab('tab-signals')">⚡ PRE-CATALYST SIGNALS</button>
+        <button class="tab-btn" onclick="switchTab('tab-journal')">🧠 REFLEXION JOURNAL</button>
+        <button class="tab-btn" onclick="switchTab('tab-console')">🖥️ SYSTEM CONSOLE</button>
+    </div>
+
+    <!-- TAB 1: MAIN OVERVIEW -->
+    <div id="tab-main" class="tab-content active">
+        <div class="grid-main">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>PORTFOLIO PERFORMANCE CURVE (REAL-TIME EQUITY)</div>
+                    <div class="txt-muted" id="chart-tick-time">TICK: REALTIME</div>
+                </div>
+                <canvas id="equityChart" style="max-height: 180px;"></canvas>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>ASSET ALLOCATION BREAKDOWN</div>
+                    <div class="txt-muted">PORTFOLIO WEIGHTS</div>
+                </div>
+                <canvas id="allocationChart" style="max-height: 180px;"></canvas>
+            </div>
+        </div>
+
+        <div class="grid-main">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>LIVE OPEN POSITIONS & DYNAMIC UNREALIZED P&L</div>
+                    <div class="txt-muted" id="position-count">0 ACTIVE POSITIONS</div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ASSET</th>
+                            <th>QTY</th>
+                            <th>CURRENT PRICE</th>
+                            <th>MARKET VALUE</th>
+                            <th>UNREALIZED P&L ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="position-table">
+                        <tr><td colspan="5" class="txt-muted">Fetching live Alpaca positions...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>MARKET WATCHLIST & SENTIMENT EDGE</div>
+                    <div class="txt-muted">6 TARGETS</div>
+                </div>
+                <div class="watch-grid" id="watchlist-box">
+                    <div class="watch-card"><span class="watch-sym">SPY</span><span class="watch-sig txt-green">BULLISH</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: GREY MARKET & SEC EDGAR -->
+    <div id="tab-grey" class="tab-content">
+        <div class="grid-main">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>DARK POOL INSTITUTIONAL FLOW VOLUME ($M)</div>
+                    <div class="txt-muted">SWEEP ANOMALIES</div>
+                </div>
+                <canvas id="darkPoolChart" style="max-height: 180px;"></canvas>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>UNORTHODOX PRE-CATALYST EDGE</div>
+                    <div class="txt-muted">SEC EDGAR + FORM 4</div>
+                </div>
+                <div style="font-size: 0.78rem; line-height: 1.6; color: #94A3B8;">
+                    • <b>Form 4 Filings:</b> Tracking corporate director accumulation.<br>
+                    • <b>8-K Material Contracts:</b> Scanning merger & contract catalysts.<br>
+                    • <b>Dark Pool Sweeps:</b> Unusually large option sweeps prior to earnings events.
+                </div>
+            </div>
+        </div>
+
         <div class="panel">
             <div class="panel-header">
-                <div>PORTFOLIO PERFORMANCE CURVE (REAL-TIME EQUITY)</div>
-                <div class="txt-muted" id="chart-tick-time">TICK: REALTIME</div>
+                <div>GREY MARKET & SEC EDGAR PRE-CATALYST RADAR (UNORTHODOX AI SIGNALS)</div>
+                <div class="txt-muted">DARK POOL SWEEPS & INSIDER FLOW</div>
             </div>
-            <canvas id="equityChart" style="max-height: 180px;"></canvas>
+            <table>
+                <thead>
+                    <tr>
+                        <th>TICKER</th>
+                        <th>DARK POOL SWEEP</th>
+                        <th>INSTITUTIONAL FLOW</th>
+                        <th>SEC EDGAR FILING EVENT</th>
+                        <th>CONVICTION TIER</th>
+                    </tr>
+                </thead>
+                <tbody id="grey-market-table">
+                    <tr><td colspan="5" class="txt-muted">Scanning dark pool sweeps & SEC filings...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB 3: SIGNALS & ORDER FLOW -->
+    <div id="tab-signals" class="tab-content">
+        <div class="panel">
+            <div class="panel-header">
+                <div>AI CONVICTION SCORE GAUGE PER TICKER</div>
+                <div class="txt-muted">MULTI-AGENT COMMITTEE</div>
+            </div>
+            <canvas id="convictionChart" style="max-height: 180px;"></canvas>
         </div>
 
         <div class="panel">
             <div class="panel-header">
-                <div>MARKET WATCHLIST & SENTIMENT EDGE</div>
-                <div class="txt-muted">6 TARGETS</div>
+                <div>PRE-CATALYST SIGNALS & ORDER FLOW</div>
+                <div class="txt-muted">SWARM COMMITTEE</div>
             </div>
-            <div class="watch-grid" id="watchlist-box">
-                <div class="watch-card"><span class="watch-sym">SPY</span><span class="watch-sig txt-green">BULLISH</span></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>TICKER</th>
+                        <th>SIGNAL RATIONALE</th>
+                        <th>STRATEGY</th>
+                        <th>CONF</th>
+                        <th>MAX RISK</th>
+                        <th>MAX REWARD</th>
+                    </tr>
+                </thead>
+                <tbody id="signal-table">
+                    <tr><td colspan="6" class="txt-muted">Scanning live order flow...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB 4: REFLEXION JOURNAL -->
+    <div id="tab-journal" class="tab-content">
+        <div class="panel">
+            <div class="panel-header">
+                <div>TRADE JOURNAL & DYNAMIC REFLEXION MEMORY</div>
+                <div class="txt-muted" id="lesson-count">0 LESSONS</div>
             </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>TIME</th>
+                        <th>TICKER</th>
+                        <th>STRATEGY</th>
+                        <th>P&L</th>
+                        <th>POST-MORTEM REFLECTION</th>
+                    </tr>
+                </thead>
+                <tbody id="memory-table">
+                    <tr><td colspan="5" class="txt-muted">Recording execution logs...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Grey Market & SEC EDGAR Pre-Catalyst Radar -->
-    <div class="panel">
-        <div class="panel-header">
-            <div>GREY MARKET & SEC EDGAR PRE-CATALYST RADAR (UNORTHODOX AI SIGNALS)</div>
-            <div class="txt-muted">DARK POOL SWEEPS & INSIDER FLOW</div>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>TICKER</th>
-                    <th>DARK POOL SWEEP</th>
-                    <th>INSTITUTIONAL FLOW</th>
-                    <th>SEC EDGAR FILING EVENT</th>
-                    <th>CONVICTION TIER</th>
-                </tr>
-            </thead>
-            <tbody id="grey-market-table">
-                <tr><td colspan="5" class="txt-muted">Scanning dark pool sweeps & SEC filings...</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Active Open Positions Table -->
-    <div class="panel">
-        <div class="panel-header">
-            <div>LIVE OPEN POSITIONS & DYNAMIC UNREALIZED P&L</div>
-            <div class="txt-muted" id="position-count">0 ACTIVE POSITIONS</div>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>ASSET</th>
-                    <th>QTY</th>
-                    <th>CURRENT PRICE</th>
-                    <th>MARKET VALUE</th>
-                    <th>UNREALIZED P&L ($)</th>
-                </tr>
-            </thead>
-            <tbody id="position-table">
-                <tr><td colspan="5" class="txt-muted">Fetching live Alpaca positions...</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Signal Feed Table -->
-    <div class="panel">
-        <div class="panel-header">
-            <div>PRE-CATALYST SIGNALS & ORDER FLOW</div>
-            <div class="txt-muted">SWARM COMMITTEE</div>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>TICKER</th>
-                    <th>SIGNAL RATIONALE</th>
-                    <th>STRATEGY</th>
-                    <th>CONF</th>
-                    <th>MAX RISK</th>
-                    <th>MAX REWARD</th>
-                </tr>
-            </thead>
-            <tbody id="signal-table">
-                <tr><td colspan="6" class="txt-muted">Scanning live order flow...</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Reflexion Memory Table -->
-    <div class="panel">
-        <div class="panel-header">
-            <div>TRADE JOURNAL & DYNAMIC REFLEXION MEMORY</div>
-            <div class="txt-muted" id="lesson-count">0 LESSONS</div>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>TIME</th>
-                    <th>TICKER</th>
-                    <th>STRATEGY</th>
-                    <th>P&L</th>
-                    <th>POST-MORTEM REFLECTION</th>
-                </tr>
-            </thead>
-            <tbody id="memory-table">
-                <tr><td colspan="5" class="txt-muted">Recording execution logs...</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- System Console -->
-    <div class="panel">
-        <div class="panel-header">SYSTEM CONSOLE STDOUT STREAM</div>
-        <div class="console-box" id="terminal-log">
-            [00:00:01] SYS_INIT: OmniAlpha Quantitative Options Engine Online.<br>
+    <!-- TAB 5: SYSTEM CONSOLE -->
+    <div id="tab-console" class="tab-content">
+        <div class="panel">
+            <div class="panel-header">SYSTEM CONSOLE STDOUT STREAM</div>
+            <div class="console-box" id="terminal-log">
+                [00:00:01] SYS_INIT: OmniAlpha Quantitative Options Engine Online.<br>
+            </div>
         </div>
     </div>
 
     <script>
-        // Password Authentication Gate Logic
+        // Tab Switcher Function
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // Security Authentication Lock Screen Logic
         async function authenticateUser() {
             const pass = document.getElementById('pass-input').value;
             const res = await fetch('/api/verify_pass', {
@@ -512,7 +519,6 @@ HTML_TEMPLATE = """
             }
         }
 
-        // Auto-check authentication state
         window.onload = function() {
             if (sessionStorage.getItem('omni_authenticated') === 'true') {
                 document.getElementById('auth-overlay').style.display = 'none';
@@ -521,8 +527,9 @@ HTML_TEMPLATE = """
             }
         };
 
-        const ctx = document.getElementById('equityChart').getContext('2d');
-        const equityChart = new Chart(ctx, {
+        // Chart 1: Equity Performance Curve Line Chart
+        const ctxEquity = document.getElementById('equityChart').getContext('2d');
+        const equityChart = new Chart(ctxEquity, {
             type: 'line',
             data: {
                 labels: [],
@@ -544,6 +551,72 @@ HTML_TEMPLATE = """
                 scales: {
                     x: { grid: { color: '#121824' }, ticks: { color: '#64748B', font: { family: 'Space Mono' } } },
                     y: { grid: { color: '#121824' }, ticks: { color: '#64748B', font: { family: 'Space Mono' } } }
+                }
+            }
+        });
+
+        // Chart 2: Asset Allocation Doughnut Chart
+        const ctxAlloc = document.getElementById('allocationChart').getContext('2d');
+        const allocationChart = new Chart(ctxAlloc, {
+            type: 'doughnut',
+            data: {
+                labels: ['SPY', 'QQQ', 'NVDA', 'AAPL', 'TSLA', 'AMD'],
+                datasets: [{
+                    data: [15, 15, 20, 20, 15, 15],
+                    backgroundColor: ['#00FF66', '#00E5FF', '#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B'],
+                    borderWidth: 1,
+                    borderColor: '#090D14'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { color: '#94A3B8', font: { family: 'Space Mono', size: 10 } } } }
+            }
+        });
+
+        // Chart 3: Dark Pool Flow Bar Chart
+        const ctxDark = document.getElementById('darkPoolChart').getContext('2d');
+        const darkPoolChart = new Chart(ctxDark, {
+            type: 'bar',
+            data: {
+                labels: ['NVDA', 'AMD', 'SPY', 'QQQ', 'AAPL', 'TSLA'],
+                datasets: [{
+                    label: 'Dark Pool Sweep ($M)',
+                    data: [18.4, 12.1, 45.0, 32.5, 9.8, 15.2],
+                    backgroundColor: '#00FF66'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: '#121824' }, ticks: { color: '#64748B', font: { family: 'Space Mono' } } },
+                    y: { grid: { color: '#121824' }, ticks: { color: '#64748B', font: { family: 'Space Mono' } } }
+                }
+            }
+        });
+
+        // Chart 4: AI Conviction Gauge Bar Chart
+        const ctxConv = document.getElementById('convictionChart').getContext('2d');
+        const convictionChart = new Chart(ctxConv, {
+            type: 'bar',
+            data: {
+                labels: ['NVDA', 'AMD', 'SPY', 'QQQ', 'AAPL', 'TSLA'],
+                datasets: [{
+                    label: 'AI Conviction (%)',
+                    data: [88, 85, 82, 84, 79, 81],
+                    backgroundColor: '#00E5FF'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: '#121824' }, ticks: { color: '#64748B', font: { family: 'Space Mono' } } },
+                    y: { min: 50, max: 100, grid: { color: '#121824' }, ticks: { color: '#64748B', font: { family: 'Space Mono' } } }
                 }
             }
         });
