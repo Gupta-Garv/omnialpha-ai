@@ -20,7 +20,7 @@ class WorldMonitorAgent:
     def __init__(self):
         self.client = genai.Client(api_key=config.GEMINI_API_KEY) if HAS_GEMINI_GENAI and config.GEMINI_API_KEY else None
         self.cache = {}
-        self.cache_ttl = 1200  # 20 minutes cache to strictly keep Gemini API usage at ~50% daily quota
+        self.cache_ttl = 300  # 5 minutes TTL (Hyper-reactive during active market hours)
 
     def fetch_live_catalysts(self, symbol: str) -> Dict[str, Any]:
         """Fetch live news and predict momentum."""
@@ -59,7 +59,8 @@ class WorldMonitorAgent:
         )
         
         prediction_text = "BULLISH_CONTINUATION"
-        if self.client:
+        prediction_text = "MARKET_CLOSED_OR_STAGNANT"
+        if self.client and config.is_market_open():
             try:
                 response = self.client.models.generate_content(
                     model="gemini-2.5-pro",

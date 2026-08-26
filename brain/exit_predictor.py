@@ -26,7 +26,7 @@ class AIExitPredictor:
             self.client = None
             
         self.ai_cache = {}
-        self.ai_cache_ttl = 1200  # 20 minute cache (keeps daily quota exactly at ~50%)
+        self.ai_cache_ttl = 300  # 5 minute cache (high-frequency during market hours)
 
     def evaluate_position_exit(self, position: Dict[str, Any], market_sentiment: str) -> Dict[str, Any]:
         """
@@ -65,7 +65,7 @@ class AIExitPredictor:
             }
             
         # PROACTIVE EXIT 3: Gemini 3.1 Pro High-Frequency AI Deep Sentiment Exits
-        if self.client and (unrealized_pl > 100.0 or unrealized_pl < -50.0):
+        if self.client and config.is_market_open() and (unrealized_pl > 100.0 or unrealized_pl < -50.0):
             import time
             current_time = time.time()
             

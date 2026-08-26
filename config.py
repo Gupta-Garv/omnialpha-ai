@@ -26,4 +26,23 @@ class Config:
     # Target Focus Underlyings (High Liquidity Options)
     TARGET_SYMBOLS = ["SPY", "QQQ", "NVDA", "AAPL", "TSLA", "AMD"]
 
+    @staticmethod
+    def is_market_open() -> bool:
+        """
+        Check if US Market is currently open (9:30 AM - 4:00 PM EST).
+        """
+        import datetime
+        import pytz
+        
+        est = pytz.timezone('US/Eastern')
+        now_est = datetime.datetime.now(est)
+        
+        if now_est.weekday() > 4:
+            return False
+            
+        market_open = now_est.replace(hour=9, minute=30, second=0, microsecond=0)
+        market_close = now_est.replace(hour=16, minute=0, second=0, microsecond=0)
+        
+        return market_open <= now_est <= market_close
+
 config = Config()
