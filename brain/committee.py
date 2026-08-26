@@ -1,15 +1,23 @@
 from typing import Dict, Any, List
 from signals.insider_tracker import insider_tracker
 from signals.social_radar import social_radar
-from signals.option_flow import option_flow_scanner
 from signals.grey_market import grey_market_scanner
 from core.risk_shield import RiskShield
 from memory.journal import reflexion_memory
 
+POSITION_SIZING = {
+    "NVDA": 150,  # ~$31,800 capital block
+    "AMD": 100,   # ~$47,600 capital block
+    "AAPL": 150,  # ~$46,300 capital block
+    "TSLA": 120,  # ~$42,300 capital block
+    "SPY": 50,    # ~$38,200 capital block
+    "QQQ": 50     # ~$35,400 capital block
+}
+
 class MultiAgentCommittee:
     """
     Synthesizes SEC EDGAR Filings, Grey Market Dark Pool Sweeps, 
-    Social Sentiment Velocity, Option Market IV, and Reflexion Self-Learning Memory.
+    Social Sentiment Velocity, and Reflexion Self-Learning Memory.
     """
 
     def evaluate_opportunity(self, symbol: str, account_summary: Dict[str, Any]) -> Dict[str, Any]:
@@ -21,7 +29,6 @@ class MultiAgentCommittee:
         grey_signals = grey_market_scanner.analyze_grey_market_signals(symbol)
         insider_signals = insider_tracker.fetch_recent_filings([symbol])
         social_signal = social_radar.analyze_ticker_sentiment(symbol)
-        option_chain = option_flow_scanner.get_option_chain_summary(symbol)
         past_lessons = reflexion_memory.get_lessons_for_symbol(symbol)
 
         has_insider_activity = len(insider_signals) > 0 or "FORM_4" in grey_signals.get("sec_filing_event", "")
@@ -32,6 +39,7 @@ class MultiAgentCommittee:
         # 2. Institutional Decision & Strategy Selection
         action = "PROPOSE_TRADE"
         strategy_type = "INSTITUTIONAL_BULL_LEVERAGE"
+        target_qty = POSITION_SIZING.get(symbol, 50)
         
         # Dynamic Risk Allocation based on Equity ($100k account)
         estimated_max_loss = 1500.0  # Cap maximum risk at $1,500 per position block
@@ -56,7 +64,7 @@ class MultiAgentCommittee:
         val = risk_shield.validate_trade(
             symbol=symbol,
             order_type=strategy_type,
-            qty=1,
+            qty=target_qty,
             max_possible_loss=estimated_max_loss,
             max_possible_gain=estimated_max_gain
         )
@@ -75,6 +83,7 @@ class MultiAgentCommittee:
             "action": "PROPOSE_TRADE",
             "strategy_type": strategy_type,
             "confidence": max(0.60, confidence),
+            "target_qty": target_qty,
             "max_loss": estimated_max_loss,
             "max_gain": estimated_max_gain,
             "risk_approved": True,

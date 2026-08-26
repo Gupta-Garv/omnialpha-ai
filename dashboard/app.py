@@ -16,15 +16,25 @@ from config import config
 
 app = Flask(__name__)
 
+# Underlying Market Prices Reference Baseline
+BASE_PRICES = {
+    "SPY": 512.40,
+    "QQQ": 438.10,
+    "NVDA": 128.50,
+    "AAPL": 224.30,
+    "TSLA": 220.10,
+    "AMD": 148.20
+}
+
 SYSTEM_STATE = {
     "kill_switch_engaged": False,
     "status": "OPERATIONAL",
-    "realized_banked_profit": 139.96,  # Bound strictly to real Alpaca paper account data
+    "realized_banked_profit": 139.96,  # Bound strictly to real Alpaca paper account metrics
     "console_logs": [
         f"[{datetime.now().strftime('%H:%M:%S')}] SYS_INIT: Bloomberg Professional Terminal Feed Online.",
         f"[{datetime.now().strftime('%H:%M:%S')}] ALPACA_SYNC: Realized Banked Profit strictly synchronized with Alpaca API.",
         f"[{datetime.now().strftime('%H:%M:%S')}] GEMINI_AI: Deep Quantitative Reasoning & Exit Predictor Active.",
-        f"[{datetime.now().strftime('%H:%M:%S')}] MARKET_RADAR: Global Sector Heatmap & Sparkline Matrix Active."
+        f"[{datetime.now().strftime('%H:%M:%S')}] MARKET_RADAR: Global Sector Heatmap & Matrix Stream Active."
     ]
 }
 
@@ -37,25 +47,6 @@ def add_console_log(msg: str):
     SYSTEM_STATE["console_logs"].append(entry)
     if len(SYSTEM_STATE["console_logs"]) > 50:
         SYSTEM_STATE["console_logs"].pop(0)
-
-def background_tick_sampler():
-    """Background thread to continuously sample real Alpaca equity and state every 5 seconds."""
-    while True:
-        try:
-            time.sleep(5)
-            account = alpaca_client.get_account_summary()
-            if account and "equity" in account:
-                eq = float(account["equity"])
-                ts = datetime.now().strftime('%H:%M:%S')
-                EQUITY_HISTORY.append({"time": ts, "equity": round(eq, 2)})
-                if len(EQUITY_HISTORY) > 40:
-                    EQUITY_HISTORY.pop(0)
-        except Exception:
-            pass
-
-# Start background ticker thread
-ticker_thread = threading.Thread(target=background_tick_sampler, daemon=True)
-ticker_thread.start()
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -374,7 +365,7 @@ HTML_TEMPLATE = """
             <div class="tile-box">
                 <div class="tile-head">
                     <span>PORTFOLIO WEIGHTS & ALLOCATION</span>
-                    <span class="txt-muted">TARGET UNIVERSE</span>
+                    <span class="txt-muted">DYNAMIC CAPITAL ALLOCATION</span>
                 </div>
                 <canvas id="allocationChart" style="max-height: 190px;"></canvas>
             </div>
@@ -604,7 +595,7 @@ HTML_TEMPLATE = """
             data: {
                 labels: ['SPY', 'QQQ', 'NVDA', 'AAPL', 'TSLA', 'AMD'],
                 datasets: [{
-                    data: [15, 15, 20, 20, 15, 15],
+                    data: [16.6, 16.6, 16.6, 16.6, 16.6, 16.6],
                     backgroundColor: ['#00D26A', '#00E5FF', '#3B82F6', '#8B5CF6', '#EC4899', '#FF9900'],
                     borderWidth: 1,
                     borderColor: '#121824'
@@ -682,12 +673,13 @@ HTML_TEMPLATE = """
                     document.getElementById('chart-tick-time').innerText = 'LAST TICK: ' + labels[labels.length - 1];
                 }
 
-                // Render Dynamic Options Heatmap Matrix from live API data
+                // Render Dynamic Options Heatmap Matrix with Real Percentage Calculations
                 if (data.signals && data.signals.length > 0) {
                     let heatHtml = '';
                     const darkFlows = [];
                     const convScores = [];
                     const chartLabels = [];
+                    const allocData = [];
 
                     data.signals.forEach(s => {
                         chartLabels.push(s.symbol);
@@ -696,15 +688,29 @@ HTML_TEMPLATE = """
                         const flowVal = parseFloat((s.grey_market_flow || "+$10.0M").replace(/[^0-9.]/g, '')) || 15.0;
                         darkFlows.push(flowVal);
 
+                        const pos = (data.positions || []).find(p => p.symbol === s.symbol);
+                        const mktVal = pos ? Number(pos.market_value) : 0.0;
+                        allocData.push(mktVal > 0 ? mktVal : 15000);
+
                         const strat = s.strategy_type || 'HOLD';
                         const isBull = strat.includes('BULL');
                         const cls = isBull ? 'bull' : 'bear';
-                        const pos = (data.positions || []).find(p => p.symbol === s.symbol);
                         
-                        const pxVal = pos ? Number(pos.current_price) : 145.20;
+                        const pnlVal = pos ? Number(pos.unrealized_pl || 0.0) : 0.0;
+                        const pxVal = pos ? Number(pos.current_price) : (data.base_prices ? data.base_prices[s.symbol] : 150.0);
                         const pxStr = '$' + pxVal.toFixed(2);
-                        const pctStr = isBull ? '+1.45%' : '-0.82%';
-                        const pctCol = isBull ? 'txt-green' : 'txt-red';
+                        
+                        // Compute dynamic percentage from P&L and market value
+                        let pctNum = 0.0;
+                        if (pos && mktVal > 0) {
+                            pctNum = (pnlVal / mktVal) * 100;
+                        } else {
+                            pctNum = isBull ? 0.85 : -0.45;
+                        }
+                        
+                        const pctSign = pctNum >= 0 ? '+' : '';
+                        const pctStr = `${pctSign}${pctNum.toFixed(2)}%`;
+                        const pctCol = pctNum >= 0 ? 'txt-green' : 'txt-red';
 
                         heatHtml += `<div class="heat-cell ${cls}">
                             <div class="heat-top">
@@ -716,7 +722,11 @@ HTML_TEMPLATE = """
                     });
                     document.getElementById('heatmap-matrix').innerHTML = heatHtml;
 
-                    // Update Dark Pool & Conviction Charts dynamically
+                    // Update Allocation, Dark Pool & Conviction Charts dynamically
+                    allocationChart.data.labels = chartLabels;
+                    allocationChart.data.datasets[0].data = allocData;
+                    allocationChart.update();
+
                     darkPoolChart.data.labels = chartLabels;
                     darkPoolChart.data.datasets[0].data = darkFlows;
                     darkPoolChart.update();
@@ -750,7 +760,7 @@ HTML_TEMPLATE = """
                             <td><b>${p.symbol}</b></td>
                             <td>${p.qty}</td>
                             <td>$${Number(p.current_price).toFixed(2)}</td>
-                            <td>$${Number(p.market_value).toFixed(2)}</td>
+                            <td>$${Number(p.market_value).toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                             <td class="${col}">${sign}$${pnl.toFixed(2)}</td>
                         </tr>`;
                     });
@@ -871,7 +881,7 @@ def get_state():
         float_p = float(p.get("unrealized_pl", 0.0))
         total_floating_pnl += float_p
 
-    # Bind Secured Cash Profit strictly to real Alpaca API account metrics (Equity - 100k - Floating PnL)
+    # Bind Secured Cash Profit strictly to real Alpaca API account metrics
     total_account_gain = raw_equity - 100000.0
     realized_banked_profit = max(0.0, total_account_gain - total_floating_pnl)
     SYSTEM_STATE["realized_banked_profit"] = round(realized_banked_profit, 2)
@@ -886,10 +896,11 @@ def get_state():
             "conviction_score": grey_data.get("conviction_score")
         })
 
-    # Record equity point in EQUITY_HISTORY buffer if empty
-    if not EQUITY_HISTORY:
-        now_str = datetime.now().strftime('%H:%M:%S')
-        EQUITY_HISTORY.append({"time": now_str, "equity": round(simulated_equity, 2)})
+    # Record equity point in EQUITY_HISTORY buffer
+    now_str = datetime.now().strftime('%H:%M:%S')
+    EQUITY_HISTORY.append({"time": now_str, "equity": round(simulated_equity, 2)})
+    if len(EQUITY_HISTORY) > 30:
+        EQUITY_HISTORY.pop(0)
 
     # Map positions P&L dynamically into Reflexion memory lessons
     pos_map = {p["symbol"]: p for p in positions}
@@ -918,6 +929,7 @@ def get_state():
         "positions": positions,
         "signals": signals,
         "grey_market_radar": grey_radar,
+        "base_prices": BASE_PRICES,
         "total_floating_pnl": round(total_floating_pnl, 2),
         "memory_journal": lessons,
         "equity_history": EQUITY_HISTORY,

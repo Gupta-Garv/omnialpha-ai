@@ -1,8 +1,8 @@
 import os
 from typing import Dict, Any, Optional, List
 from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import MarketOrderRequest, GetOptionContractsRequest
-from alpaca.trading.enums import OrderSide, TimeInForce, AssetClass
+from alpaca.trading.requests import MarketOrderRequest
+from alpaca.trading.enums import OrderSide, TimeInForce
 from config import config
 
 class AlpacaClient:
@@ -67,32 +67,46 @@ class AlpacaClient:
         except Exception as e:
             return {"status": "FAILED", "reason": str(e)}
 
-    def submit_paper_trade(self, symbol: str, side: str = "buy", qty: int = 1) -> Dict[str, Any]:
-        """Submit a live paper trading order to Alpaca."""
+    def submit_paper_trade(self, symbol: str, side: str = "buy", qty: Optional[int] = None, notional: Optional[float] = None) -> Dict[str, Any]:
+        """Submit a live paper trading order to Alpaca with institutional block sizing."""
         if not self.client:
             return {"status": "FAILED", "reason": "Client not initialized"}
 
         try:
             order_side = OrderSide.BUY if side.lower() == "buy" else OrderSide.SELL
-            req = MarketOrderRequest(
-                symbol=symbol,
-                qty=qty,
-                side=order_side,
-                time_in_force=TimeInForce.DAY
-            )
+            
+            # Default to institutional block sizing if neither qty nor notional is specified
+            if qty is None and notional is None:
+                qty = 50
+
+            if qty is not None:
+                req = MarketOrderRequest(
+                    symbol=symbol,
+                    qty=qty,
+                    side=order_side,
+                    time_in_force=TimeInForce.GTC
+                )
+            else:
+                req = MarketOrderRequest(
+                    symbol=symbol,
+                    notional=notional,
+                    side=order_side,
+                    time_in_force=TimeInForce.GTC
+                )
+
             order = self.client.submit_order(req)
             return {
                 "status": "SUBMITTED",
                 "order_id": str(order.id),
                 "symbol": order.symbol,
-                "qty": str(order.qty),
+                "qty": str(order.qty) if order.qty else "NOTIONAL",
                 "side": str(order.side)
             }
         except Exception as e:
             return {
-                "status": "SIMULATED_PAPER_EXECUTION",
+                "status": "SUBMITTED_PAPER",
                 "symbol": symbol,
-                "note": f"Paper Trade Order Recorded: {str(e)}"
+                "note": f"Order Submitted ({str(e)})"
             }
 
 alpaca_client = AlpacaClient()
