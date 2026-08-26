@@ -43,6 +43,35 @@ SYSTEM_STATE = {
 
 EQUITY_HISTORY = []
 
+def _start_background_engine():
+    """Ensure the autonomous quantitative AI trading engine runs regardless of WSGI server environment."""
+    import os
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "false":
+        return
+    if getattr(app, '_engine_started', False):
+        return
+    app._engine_started = True
+
+    def engine_worker():
+        import time
+        time.sleep(3)
+        print("🚀 AUTONOMOUS QUANTITATIVE AI TRADING ENGINE WORKER INITIALIZED")
+        from main import run_autonomous_trading_cycle
+        cycle = 1
+        while True:
+            try:
+                if not SYSTEM_STATE.get("kill_switch_engaged", False):
+                    run_autonomous_trading_cycle(cycle)
+                    cycle += 1
+            except Exception as e:
+                print(f"⚠️ ENGINE WORKER CYCLE EXCEPTION: {str(e)}")
+            time.sleep(10)
+
+    t = threading.Thread(target=engine_worker, daemon=True)
+    t.start()
+
+_start_background_engine()
+
 def add_console_log(msg: str):
     """Add a timestamped entry to the rolling system console log."""
     ts = datetime.now().strftime('%H:%M:%S')
