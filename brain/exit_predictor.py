@@ -24,6 +24,9 @@ class AIExitPredictor:
                 self.client = None
         else:
             self.client = None
+            
+        self.ai_cache = {}
+        self.ai_cache_ttl = 1200  # 20 minute cache (keeps daily quota exactly at ~50%)
 
     def evaluate_position_exit(self, position: Dict[str, Any], market_sentiment: str) -> Dict[str, Any]:
         """
@@ -63,6 +66,15 @@ class AIExitPredictor:
             
         # PROACTIVE EXIT 3: Gemini 3.1 Pro High-Frequency AI Deep Sentiment Exits
         if self.client and (unrealized_pl > 100.0 or unrealized_pl < -50.0):
+            import time
+            current_time = time.time()
+            
+            # Check AI Cache first
+            if symbol in self.ai_cache:
+                cached_res, timestamp = self.ai_cache[symbol]
+                if current_time - timestamp < self.ai_cache_ttl:
+                    return cached_res
+
             try:
                 prompt = (
                     f"You are a Senior Quantitative Portfolio Manager using Gemini 3.1 Pro capability. Evaluate open position in {symbol}.\n"
@@ -78,13 +90,27 @@ class AIExitPredictor:
                 
                 if "TAKE_PROFIT" in rationale.upper() or "CUT_LOSS" in rationale.upper():
                     action_type = "TAKE_PROFIT_EXIT" if unrealized_pl > 0 else "CUT_LOSS_EXIT"
-                    return {
+                    result = {
                         "action": action_type,
                         "symbol": symbol,
                         "reason": f"AI PREDICTIVE EXIT: {rationale[:120]}",
                         "banked_pnl": unrealized_pl,
                         "confidence": 0.95
                     }
+                    self.ai_cache[symbol] = (result, time.time())
+                    return result
+                    
+                # Cache the HOLD decision too to prevent rapid re-evaluation
+                hold_result = {
+                    "action": "HOLD_POSITION",
+                    "symbol": symbol,
+                    "reason": f"AI evaluation: {rationale[:80]}",
+                    "banked_pnl": 0.0,
+                    "confidence": 0.85
+                }
+                self.ai_cache[symbol] = (hold_result, time.time())
+                return hold_result
+                
             except Exception:
                 pass
                 

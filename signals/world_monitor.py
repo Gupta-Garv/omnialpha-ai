@@ -20,12 +20,18 @@ class WorldMonitorAgent:
     def __init__(self):
         self.client = genai.Client(api_key=config.GEMINI_API_KEY) if HAS_GEMINI_GENAI and config.GEMINI_API_KEY else None
         self.cache = {}
+        self.cache_ttl = 1200  # 20 minutes cache to strictly keep Gemini API usage at ~50% daily quota
 
     def fetch_live_catalysts(self, symbol: str) -> Dict[str, Any]:
         """Fetch live news and predict momentum."""
-        # Simple caching to avoid spamming the Gemini API every 1 second
+        # Simple TTL caching to respect Gemini 50-60% daily token budget (avoids hitting API every 2 seconds)
+        import time
+        current_time = time.time()
+        
         if symbol in self.cache:
-            return self.cache[symbol]
+            cached_data, timestamp = self.cache[symbol]
+            if current_time - timestamp < self.cache_ttl:
+                return cached_data
 
         encoded_sym = urllib.parse.quote(symbol)
         feed_url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={encoded_sym}&region=US&lang=en-US"
@@ -77,7 +83,7 @@ class WorldMonitorAgent:
             "velocity": velocity
         }
         
-        self.cache[symbol] = result
+        self.cache[symbol] = (result, time.time())
         return result
 
 world_monitor = WorldMonitorAgent()
