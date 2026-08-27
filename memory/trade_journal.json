@@ -2801,9 +2801,10 @@
     "symbol": "COIN",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -34.4,
+    "lesson_learned": "LOSS -$34.40 (-0.3%). Require stronger catalyst next time.",
+    "pnl_pct": -0.35
   },
   {
     "id": "T271_CRWD_1787854606",
@@ -2831,9 +2832,10 @@
     "symbol": "NVDA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -31.65,
+    "lesson_learned": "LOSS -$31.65 (-0.3%). Require stronger catalyst next time.",
+    "pnl_pct": -0.32
   },
   {
     "id": "T274_MARA_1787854753",
@@ -2869,6 +2871,26 @@
     "id": "T277_MSTR_1787854927",
     "timestamp": "2026-08-27T23:52:07.290531",
     "symbol": "MSTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T278_COIN_1787855122",
+    "timestamp": "2026-08-27T23:55:22.467596",
+    "symbol": "COIN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T279_NVDA_1787855203",
+    "timestamp": "2026-08-27T23:56:43.004397",
+    "symbol": "NVDA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
     "status": "OPEN",

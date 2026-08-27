@@ -92,42 +92,22 @@ class TradingCommittee:
         return self._hold(symbol, rationale)
 
     def evaluate_exit(self, position: Dict[str, Any]) -> Dict[str, Any]:
-        """Evaluate whether to exit an open position."""
+        """Evaluate whether to exit an open position instantly."""
         symbol = position.get("symbol", "")
-        current_price = float(position.get("current_price", 0.0))
         market_value = float(position.get("market_value", 1.0))
         unrealized_pl = float(position.get("unrealized_pl", 0.0))
         pnl_pct = (unrealized_pl / market_value) * 100 if market_value > 0 else 0.0
 
-        # Hard rules (Fast profit harvesting & tight loss control)
-        if pnl_pct >= 0.5:
+        # Instant Hard Rules (High Frequency Profit Harvesting)
+        if pnl_pct >= 0.3:
             return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol,
-                    "reason": f"Active profit target hit at +{pnl_pct:.2f}%. Banking +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
-        if pnl_pct <= -0.5:
+                    "reason": f"Active target hit +{pnl_pct:.2f}%. Banking +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
+        if pnl_pct <= -0.3:
             return {"action": "CUT_LOSS_EXIT", "symbol": symbol,
-                    "reason": f"Tight stop-loss hit at {pnl_pct:.2f}%. Preserving capital.", "pnl": unrealized_pl}
+                    "reason": f"Active stop loss hit {pnl_pct:.2f}%. Preserving capital.", "pnl": unrealized_pl}
 
-        # Query AI for active position management
-        headlines = news_scanner.get_headlines(symbol)
-        user_prompt = (
-            f"OPEN POSITION: {symbol}\n"
-            f"Current P&L: ${unrealized_pl:.2f} ({pnl_pct:.2f}%)\n"
-            f"Current Price: ${current_price:.2f}\n"
-            f"LIVE NEWS:\n" + "\n".join(f"  - {h}" for h in headlines) + "\n\n"
-            f"Should we TAKE_PROFIT, CUT_LOSS, or HOLD this position right now?"
-        )
-
-        response = ai_router.query(prompt=user_prompt, system_prompt=self.EXIT_SYSTEM_PROMPT)
-        lines = [l.strip() for l in response.strip().split("\n") if l.strip()] if response else []
-        action_raw = lines[0].upper() if lines else "HOLD"
-        rationale = lines[1] if len(lines) > 1 else "AI autonomous position evaluation."
-
-        if "TAKE_PROFIT" in action_raw:
-            return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol, "reason": rationale, "pnl": unrealized_pl}
-        if "CUT_LOSS" in action_raw:
-            return {"action": "CUT_LOSS_EXIT", "symbol": symbol, "reason": rationale, "pnl": unrealized_pl}
-
-        return {"action": "HOLD_POSITION", "symbol": symbol, "reason": rationale, "pnl": unrealized_pl}
+        # Between -0.3% and +0.3%: hold and let profits run
+        return {"action": "HOLD_POSITION", "symbol": symbol, "reason": f"Position within band ({pnl_pct:+.2f}%). Holding for breakout.", "pnl": unrealized_pl}
 
     @staticmethod
     def _hold(symbol: str, reason: str) -> Dict[str, Any]:
