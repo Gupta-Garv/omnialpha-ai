@@ -157,12 +157,12 @@ def run_trading_cycle(cycle: int):
 
         if action == "PROPOSE_TRADE":
             result = alpaca_client.submit_paper_trade(sym, side="buy", notional=config.BLOCK_NOTIONAL)
-            if result.get("status") in ("SUBMITTED", "SUBMITTED_PAPER"):
+            if result.get("status") == "SUBMITTED":
                 held_symbols.add(sym)
                 reflexion_memory.record_entry(sym, decision.get("strategy_type", "MOMENTUM_LONG"), decision.get("confidence", 0.85))
-                log(f"  🚀 ORDER SENT: {sym} ${config.BLOCK_NOTIONAL:,.0f} | ID={result.get('order_id','?')}")
+                log(f"  🚀 ORDER SENT: {sym} ${config.BLOCK_NOTIONAL:,.0f} | ID={result.get('order_id')}")
             else:
-                log(f"  ⚠️  Order failed for {sym}: {result}")
+                log(f"  ⚠️  Order failed for {sym}: {result.get('error', 'Unknown error')}")
 
     SYSTEM_STATE["recent_signals"] = current_signals
     log(f"=== CYCLE #{cycle} END ===\n")

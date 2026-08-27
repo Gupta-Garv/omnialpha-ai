@@ -84,14 +84,14 @@ class AlpacaClient:
                     symbol=symbol,
                     qty=qty,
                     side=order_side,
-                    time_in_force=TimeInForce.GTC
+                    time_in_force=TimeInForce.DAY
                 )
             else:
                 req = MarketOrderRequest(
                     symbol=symbol,
                     notional=notional,
                     side=order_side,
-                    time_in_force=TimeInForce.GTC
+                    time_in_force=TimeInForce.DAY
                 )
 
             order = self.client.submit_order(req)
@@ -103,10 +103,11 @@ class AlpacaClient:
                 "side": str(order.side)
             }
         except Exception as e:
+            print(f"  [ALPACA ERROR] {symbol} Order failed: {e}")
             return {
-                "status": "SUBMITTED_PAPER",
+                "status": "FAILED",
                 "symbol": symbol,
-                "note": f"Order Submitted ({str(e)})"
+                "error": str(e)
             }
 
 alpaca_client = AlpacaClient()

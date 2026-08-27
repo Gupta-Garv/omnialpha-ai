@@ -1050,9 +1050,10 @@
     "symbol": "COIN",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -9.1,
+    "lesson_learned": "LOSS -$9.10 (-0.5%). Require stronger catalyst next time.",
+    "pnl_pct": -0.5
   },
   {
     "id": "T96_MARA_1787773849",
@@ -2308,6 +2309,566 @@
     "id": "T221_HOOD_1787774656",
     "timestamp": "2026-08-27T01:34:16.310435",
     "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T222_MARA_1787774675",
+    "timestamp": "2026-08-27T01:34:35.558660",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T223_ARM_1787774676",
+    "timestamp": "2026-08-27T01:34:36.630841",
+    "symbol": "ARM",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T224_HOOD_1787774677",
+    "timestamp": "2026-08-27T01:34:37.656510",
+    "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T225_PLTR_1787774679",
+    "timestamp": "2026-08-27T01:34:39.180815",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T226_MARA_1787774697",
+    "timestamp": "2026-08-27T01:34:57.436921",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T227_ARM_1787774698",
+    "timestamp": "2026-08-27T01:34:58.754489",
+    "symbol": "ARM",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T228_HOOD_1787774699",
+    "timestamp": "2026-08-27T01:34:59.972270",
+    "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T229_RIVN_1787774701",
+    "timestamp": "2026-08-27T01:35:01.304971",
+    "symbol": "RIVN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T230_PLTR_1787774702",
+    "timestamp": "2026-08-27T01:35:02.701571",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T231_ARM_1787774720",
+    "timestamp": "2026-08-27T01:35:20.881162",
+    "symbol": "ARM",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T232_HOOD_1787774722",
+    "timestamp": "2026-08-27T01:35:22.115058",
+    "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T233_PLTR_1787774723",
+    "timestamp": "2026-08-27T01:35:23.864824",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T234_MARA_1787774744",
+    "timestamp": "2026-08-27T01:35:44.408389",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T235_ARM_1787774747",
+    "timestamp": "2026-08-27T01:35:47.365720",
+    "symbol": "ARM",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T236_HOOD_1787774750",
+    "timestamp": "2026-08-27T01:35:50.091010",
+    "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T237_PLTR_1787774754",
+    "timestamp": "2026-08-27T01:35:54.274714",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T238_MARA_1787774774",
+    "timestamp": "2026-08-27T01:36:14.179890",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T239_ARM_1787774777",
+    "timestamp": "2026-08-27T01:36:17.977011",
+    "symbol": "ARM",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T240_HOOD_1787774778",
+    "timestamp": "2026-08-27T01:36:18.950589",
+    "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T241_RIVN_1787774780",
+    "timestamp": "2026-08-27T01:36:20.102632",
+    "symbol": "RIVN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T242_COIN_1787774781",
+    "timestamp": "2026-08-27T01:36:21.337478",
+    "symbol": "COIN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T243_PLTR_1787774782",
+    "timestamp": "2026-08-27T01:36:22.323302",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T244_MARA_1787774800",
+    "timestamp": "2026-08-27T01:36:40.089623",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T245_ARM_1787774801",
+    "timestamp": "2026-08-27T01:36:41.159382",
+    "symbol": "ARM",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T246_RIVN_1787774803",
+    "timestamp": "2026-08-27T01:36:43.262856",
+    "symbol": "RIVN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T247_MARA_1787774821",
+    "timestamp": "2026-08-27T01:37:01.318753",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T248_HOOD_1787774824",
+    "timestamp": "2026-08-27T01:37:04.273782",
+    "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T249_RIVN_1787774826",
+    "timestamp": "2026-08-27T01:37:06.575927",
+    "symbol": "RIVN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T250_PLTR_1787774828",
+    "timestamp": "2026-08-27T01:37:08.734991",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T251_HOOD_1787774847",
+    "timestamp": "2026-08-27T01:37:27.799522",
+    "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T252_RIVN_1787774848",
+    "timestamp": "2026-08-27T01:37:28.866445",
+    "symbol": "RIVN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T253_PLTR_1787774849",
+    "timestamp": "2026-08-27T01:37:29.934715",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T254_MARA_1787774867",
+    "timestamp": "2026-08-27T01:37:47.290444",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T255_HOOD_1787774869",
+    "timestamp": "2026-08-27T01:37:49.039878",
+    "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T256_PLTR_1787774871",
+    "timestamp": "2026-08-27T01:37:51.416983",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T257_MARA_1787774890",
+    "timestamp": "2026-08-27T01:38:10.993371",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T258_ARM_1787774892",
+    "timestamp": "2026-08-27T01:38:12.226500",
+    "symbol": "ARM",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T259_HOOD_1787774893",
+    "timestamp": "2026-08-27T01:38:13.331516",
+    "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T260_RIVN_1787774894",
+    "timestamp": "2026-08-27T01:38:14.860654",
+    "symbol": "RIVN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T261_PLTR_1787774895",
+    "timestamp": "2026-08-27T01:38:15.830326",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T262_ARM_1787774914",
+    "timestamp": "2026-08-27T01:38:34.681758",
+    "symbol": "ARM",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T263_HOOD_1787774916",
+    "timestamp": "2026-08-27T01:38:36.556951",
+    "symbol": "HOOD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T264_RIVN_1787774918",
+    "timestamp": "2026-08-27T01:38:38.057295",
+    "symbol": "RIVN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T265_PLTR_1787774922",
+    "timestamp": "2026-08-27T01:38:42.067961",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T266_MSTR_1787854484",
+    "timestamp": "2026-08-27T23:44:44.512973",
+    "symbol": "MSTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T267_NVDA_1787854486",
+    "timestamp": "2026-08-27T23:44:46.375201",
+    "symbol": "NVDA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T268_MARA_1787854488",
+    "timestamp": "2026-08-27T23:44:48.223327",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T269_PLTR_1787854493",
+    "timestamp": "2026-08-27T23:44:53.472673",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T270_COIN_1787854542",
+    "timestamp": "2026-08-27T23:45:42.583199",
+    "symbol": "COIN",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T271_CRWD_1787854606",
+    "timestamp": "2026-08-27T23:46:46.736059",
+    "symbol": "CRWD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T272_MSTR_1787854656",
+    "timestamp": "2026-08-27T23:47:36.479582",
+    "symbol": "MSTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T273_NVDA_1787854705",
+    "timestamp": "2026-08-27T23:48:25.029829",
+    "symbol": "NVDA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T274_MARA_1787854753",
+    "timestamp": "2026-08-27T23:49:13.141774",
+    "symbol": "MARA",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T275_PLTR_1787854775",
+    "timestamp": "2026-08-27T23:49:35.356290",
+    "symbol": "PLTR",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T276_CRWD_1787854879",
+    "timestamp": "2026-08-27T23:51:19.089943",
+    "symbol": "CRWD",
+    "strategy": "MOMENTUM_LONG",
+    "confidence": 0.85,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
+  },
+  {
+    "id": "T277_MSTR_1787854927",
+    "timestamp": "2026-08-27T23:52:07.290531",
+    "symbol": "MSTR",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
     "status": "OPEN",

@@ -36,13 +36,12 @@ class TradingCommittee:
     )
 
     EXIT_SYSTEM_PROMPT = (
-        "You are an autonomous quantitative trading AI managing open positions. "
-        "Your mandate: protect capital and harvest profits using a strict 3:1 reward-to-risk ratio. "
+        "You are an aggressive autonomous quantitative trading AI managing open positions. "
+        "Your mandate: actively harvest profits and recycle capital into high-momentum trades. "
         "DECISION RULES:\n"
-        "- P&L > +1.5%: output TAKE_PROFIT (lock in gains)\n"
-        "- P&L < -0.5%: output CUT_LOSS (cut bleeding)\n"
-        "- Otherwise: output HOLD\n"
-        "If live news is very negative for the position, bias toward TAKE_PROFIT or CUT_LOSS immediately.\n"
+        "- P&L > +0.3%: output TAKE_PROFIT (bank the gains immediately)\n"
+        "- P&L < -0.3%: output CUT_LOSS (cut small loss quickly)\n"
+        "- If momentum has stalled: output TAKE_PROFIT or CUT_LOSS to recycle capital.\n"
         "OUTPUT FORMAT (exactly 2 lines):\n"
         "Line 1: HOLD or TAKE_PROFIT or CUT_LOSS\n"
         "Line 2: One sentence rationale."
@@ -100,28 +99,28 @@ class TradingCommittee:
         unrealized_pl = float(position.get("unrealized_pl", 0.0))
         pnl_pct = (unrealized_pl / market_value) * 100 if market_value > 0 else 0.0
 
-        # Hard rules first (no AI needed)
-        if pnl_pct >= 3.0:
+        # Hard rules (Fast profit harvesting & tight loss control)
+        if pnl_pct >= 0.5:
             return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol,
-                    "reason": f"Hard take-profit hit at +{pnl_pct:.2f}%. Locking gains.", "pnl": unrealized_pl}
-        if pnl_pct <= -1.0:
+                    "reason": f"Active profit target hit at +{pnl_pct:.2f}%. Banking +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
+        if pnl_pct <= -0.5:
             return {"action": "CUT_LOSS_EXIT", "symbol": symbol,
-                    "reason": f"Hard stop-loss hit at {pnl_pct:.2f}%. Cutting bleed.", "pnl": unrealized_pl}
+                    "reason": f"Tight stop-loss hit at {pnl_pct:.2f}%. Preserving capital.", "pnl": unrealized_pl}
 
-        # Between -1% and +3%: ask AI based on news
+        # Query AI for active position management
         headlines = news_scanner.get_headlines(symbol)
         user_prompt = (
             f"OPEN POSITION: {symbol}\n"
             f"Current P&L: ${unrealized_pl:.2f} ({pnl_pct:.2f}%)\n"
             f"Current Price: ${current_price:.2f}\n"
             f"LIVE NEWS:\n" + "\n".join(f"  - {h}" for h in headlines) + "\n\n"
-            f"Based on this data, what is your exit decision?"
+            f"Should we TAKE_PROFIT, CUT_LOSS, or HOLD this position right now?"
         )
 
         response = ai_router.query(prompt=user_prompt, system_prompt=self.EXIT_SYSTEM_PROMPT)
         lines = [l.strip() for l in response.strip().split("\n") if l.strip()] if response else []
         action_raw = lines[0].upper() if lines else "HOLD"
-        rationale = lines[1] if len(lines) > 1 else "AI autonomous hold."
+        rationale = lines[1] if len(lines) > 1 else "AI autonomous position evaluation."
 
         if "TAKE_PROFIT" in action_raw:
             return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol, "reason": rationale, "pnl": unrealized_pl}
