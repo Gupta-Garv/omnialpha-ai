@@ -81,11 +81,20 @@ class TradingCommittee:
         rationale = lines[1] if len(lines) > 1 else "AI autonomous decision."
 
         if "PROPOSE_TRADE" in action_raw:
+            # Kelly Bet Sizing: Scale size by conviction level ($10k to $50k)
+            confidence = 0.85
+            if "STRONG" in rationale.upper() or "SURGE" in rationale.upper() or "BREAKOUT" in rationale.upper():
+                confidence = 0.90
+                trade_notional = min(50000.0, buying_power * 0.20)  # $50k Tier-1 bet
+            else:
+                trade_notional = config.BLOCK_NOTIONAL  # $10k base bet
+
             return {
                 "symbol": symbol,
                 "action": "PROPOSE_TRADE",
                 "strategy_type": "MOMENTUM_LONG",
-                "confidence": 0.85,
+                "confidence": confidence,
+                "notional": trade_notional,
                 "reason": rationale,
             }
 
@@ -98,15 +107,18 @@ class TradingCommittee:
         unrealized_pl = float(position.get("unrealized_pl", 0.0))
         pnl_pct = (unrealized_pl / market_value) * 100 if market_value > 0 else 0.0
 
-        # Quantitative Asymmetric Risk Rules (+1.5% Take Profit, -0.8% Stop Loss)
+        # Multi-Stage Profit Harvesting & Stop Loss
+        if pnl_pct >= 4.0:
+            return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol,
+                    "reason": f"🚀 Macro breakout runner target hit +{pnl_pct:.2f}%. Harvesting +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
         if pnl_pct >= 1.5:
             return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol,
-                    "reason": f"Asymmetric profit target hit +{pnl_pct:.2f}%. Banking +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
+                    "reason": f"💰 Stage-1 profit target hit +{pnl_pct:.2f}%. Banking +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
         if pnl_pct <= -0.8:
             return {"action": "CUT_LOSS_EXIT", "symbol": symbol,
-                    "reason": f"Asymmetric stop loss hit {pnl_pct:.2f}%. Protecting capital.", "pnl": unrealized_pl}
+                    "reason": f"🛡️ Stop loss hit {pnl_pct:.2f}%. Protecting capital.", "pnl": unrealized_pl}
 
-        # Position within target corridor (-0.8% to +1.5%)
+        # Corridor active (-0.8% to +1.5%)
         return {"action": "HOLD_POSITION", "symbol": symbol, "reason": f"Corridor active ({pnl_pct:+.2f}%). Allowing trade room to run.", "pnl": unrealized_pl}
 
     @staticmethod
