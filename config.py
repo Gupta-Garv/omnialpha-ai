@@ -39,8 +39,8 @@ class Config:
 
     PORT: int = int(os.getenv("PORT", "8080"))
 
-    # Default watchlist (overridden by screener)
-    TARGET_SYMBOLS = ["SPY", "QQQ", "NVDA", "AAPL", "TSLA", "AMD"]
+    # Default watchlist (diversified multi-sector: Tech, Crypto, S&P 500, Gold, Energy)
+    TARGET_SYMBOLS = ["NVDA", "PLTR", "SPY", "GLD", "XOM", "COIN"]
 
     @staticmethod
     def is_market_open() -> bool:

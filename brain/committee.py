@@ -98,16 +98,16 @@ class TradingCommittee:
         unrealized_pl = float(position.get("unrealized_pl", 0.0))
         pnl_pct = (unrealized_pl / market_value) * 100 if market_value > 0 else 0.0
 
-        # Instant Hard Rules (High Frequency Profit Harvesting)
-        if pnl_pct >= 0.3:
+        # Quantitative Asymmetric Risk Rules (+1.5% Take Profit, -0.8% Stop Loss)
+        if pnl_pct >= 1.5:
             return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol,
-                    "reason": f"Active target hit +{pnl_pct:.2f}%. Banking +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
-        if pnl_pct <= -0.3:
+                    "reason": f"Asymmetric profit target hit +{pnl_pct:.2f}%. Banking +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
+        if pnl_pct <= -0.8:
             return {"action": "CUT_LOSS_EXIT", "symbol": symbol,
-                    "reason": f"Active stop loss hit {pnl_pct:.2f}%. Preserving capital.", "pnl": unrealized_pl}
+                    "reason": f"Asymmetric stop loss hit {pnl_pct:.2f}%. Protecting capital.", "pnl": unrealized_pl}
 
-        # Between -0.3% and +0.3%: hold and let profits run
-        return {"action": "HOLD_POSITION", "symbol": symbol, "reason": f"Position within band ({pnl_pct:+.2f}%). Holding for breakout.", "pnl": unrealized_pl}
+        # Position within target corridor (-0.8% to +1.5%)
+        return {"action": "HOLD_POSITION", "symbol": symbol, "reason": f"Corridor active ({pnl_pct:+.2f}%). Allowing trade room to run.", "pnl": unrealized_pl}
 
     @staticmethod
     def _hold(symbol: str, reason: str) -> Dict[str, Any]:
