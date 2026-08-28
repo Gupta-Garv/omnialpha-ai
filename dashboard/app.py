@@ -59,6 +59,17 @@ body {
     padding: 4px; height: 100vh;
     display: flex; flex-direction: column; font-size: 11px; overflow: hidden;
 }
+#auth-overlay {
+    position: fixed; top:0; left:0; width:100vw; height:100vh;
+    background:#000; z-index:9999;
+    display:flex; flex-direction:column; justify-content:center; align-items:center; gap:10px;
+}
+.auth-card { border:1px solid #555; border-top:4px solid #FFA500; padding:20px; width:300px; display:flex; flex-direction:column; gap:10px; background:#111; }
+.auth-title { font-size:12px; font-weight:bold; color:#FFA500; text-align:center; }
+.auth-input { background:#000; border:1px solid #555; color:#0F0; padding:6px; text-align:center; font-family:Consolas,monospace; }
+.auth-btn { background:#FFA500; color:#000; border:none; padding:6px; font-weight:bold; cursor:pointer; }
+.auth-err { font-size:10px; color:#F00; text-align:center; min-height:12px; }
+
 .header { display:flex; justify-content:space-between; align-items:center; background:#1A1A1A; border:1px solid #333; padding:4px 8px; margin-bottom:4px; }
 .header-title { color:#FFA500; font-weight:bold; font-size:12px; }
 .metrics { display:flex; gap:20px; }
@@ -105,6 +116,15 @@ td { padding:4px; border-bottom:1px dotted #222; }
 </style>
 </head>
 <body>
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-title">OMNIALPHA TERMINAL</div>
+    <input type="password" id="pass-input" class="auth-input" placeholder="PASSCODE" onkeyup="if(event.key==='Enter')authenticateUser()" autofocus>
+    <button class="auth-btn" onclick="authenticateUser()">LOGIN</button>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+
 <div class="header">
   <div class="header-title">OMNIALPHA QUANTITATIVE DESK</div>
   <div class="metrics">
@@ -234,10 +254,26 @@ const allocationChart = new Chart(document.getElementById('allocationChart').get
 });
 
 window.onload = () => {
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) overlay.style.display = 'none';
   startPolling();
   setInterval(updateClocks, 1000);
   updateClocks();
 };
+
+function authenticateUser() {
+  const pass = document.getElementById('pass-input').value;
+  fetch('/api/verify_pass', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pass}) })
+    .then(r => r.json()).then(d => {
+      if (d.status === 'SUCCESS') {
+        document.getElementById('auth-overlay').style.display = 'none';
+        sessionStorage.setItem('omni_authenticated', 'true');
+        startPolling();
+      } else {
+        document.getElementById('auth-err').innerText = 'ACCESS DENIED';
+      }
+    });
+}
 
 function startPolling() {
   fetchDashboard();
@@ -285,39 +321,32 @@ async function fetchDashboard() {
     }
 
     // AI Signals heatmap + table
-    const sigList = (d.signals && d.signals.length > 0) ? d.signals : [
-      {symbol: 'NVDA', action: 'PROPOSE_TRADE', reason: 'High RVOL breakout catalyst', confidence: 0.88},
-      {symbol: 'MSTR', action: 'PROPOSE_TRADE', reason: 'Bitcoin momentum surge', confidence: 0.85},
-      {symbol: 'COIN', action: 'HOLD_POSITION', reason: 'Consolidating near VWAP', confidence: 0.65},
-      {symbol: 'TSLA', action: 'HOLD_POSITION', reason: 'Volume consolidation', confidence: 0.60},
-      {symbol: 'PLTR', action: 'HOLD_POSITION', reason: 'Awaiting earnings catalyst', confidence: 0.55},
-      {symbol: 'CRWD', action: 'HOLD_POSITION', reason: 'Holding steady in corridor', confidence: 0.70}
-    ];
-
-    let heat = '', sig = '', allocLabels = [], allocData = [];
-    sigList.forEach(s => {
-      const pos = (d.positions || []).find(p => p.symbol === s.symbol);
-      const mktVal = pos ? Number(pos.market_value) : 0;
-      const pnl = pos ? Number(pos.unrealized_pl || 0) : 0;
-      const pnlPct = mktVal > 0 ? (pnl / mktVal * 100) : 0;
-      const pctStr = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%';
-      const pxVal = pos ? Number(pos.current_price) : 0;
-      const act = s.action || 'HOLD';
-      const isBull = act === 'PROPOSE_TRADE';
-      const isHold = act === 'HOLD_POSITION';
-      const cls = isBull ? 'bull' : (isHold ? 'hold' : 'bear');
-      const pctCol = pnlPct >= 0 ? 't-green' : 't-red';
-      allocLabels.push(s.symbol);
-      allocData.push(mktVal > 0 ? mktVal : 50);
-      heat += `<div class="h-cell ${cls}"><div class="h-sym">${s.symbol}</div><div class="h-pct ${pctCol}">${pctStr}</div><div class="h-val">${pxVal > 0 ? '$'+pxVal.toFixed(2) : '--'}</div></div>`;
-      const col = isBull ? 't-green' : 't-red';
-      sig += `<tr><td><b>${s.symbol}</b></td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.reason||''}</td><td class="${col}">${act}</td><td>${((s.confidence||0)*100).toFixed(0)}%</td></tr>`;
-    });
-    document.getElementById('heatmap-matrix').innerHTML = heat;
-    document.getElementById('signal-table').innerHTML = sig;
-    allocationChart.data.labels = allocLabels;
-    allocationChart.data.datasets[0].data = allocData;
-    allocationChart.update();
+    if (d.signals && d.signals.length > 0) {
+      let heat = '', sig = '', allocLabels = [], allocData = [];
+      d.signals.forEach(s => {
+        const pos = (d.positions || []).find(p => p.symbol === s.symbol);
+        const mktVal = pos ? Number(pos.market_value) : 0;
+        const pnl = pos ? Number(pos.unrealized_pl || 0) : 0;
+        const pnlPct = mktVal > 0 ? (pnl / mktVal * 100) : 0;
+        const pctStr = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%';
+        const pxVal = pos ? Number(pos.current_price) : 0;
+        const act = s.action || 'HOLD';
+        const isBull = act === 'PROPOSE_TRADE';
+        const isHold = act === 'HOLD_POSITION';
+        const cls = isBull ? 'bull' : (isHold ? 'hold' : 'bear');
+        const pctCol = pnlPct >= 0 ? 't-green' : 't-red';
+        allocLabels.push(s.symbol);
+        allocData.push(mktVal > 0 ? mktVal : 50);
+        heat += `<div class="h-cell ${cls}"><div class="h-sym">${s.symbol}</div><div class="h-pct ${pctCol}">${pctStr}</div><div class="h-val">${pxVal > 0 ? '$'+pxVal.toFixed(2) : '--'}</div></div>`;
+        const col = isBull ? 't-green' : 't-red';
+        sig += `<tr><td><b>${s.symbol}</b></td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.reason||''}</td><td class="${col}">${act}</td><td>${((s.confidence||0)*100).toFixed(0)}%</td></tr>`;
+      });
+      document.getElementById('heatmap-matrix').innerHTML = heat;
+      document.getElementById('signal-table').innerHTML = sig;
+      allocationChart.data.labels = allocLabels;
+      allocationChart.data.datasets[0].data = allocData;
+      allocationChart.update();
+    }
 
     // Positions
     if (d.positions !== undefined) {
@@ -339,10 +368,11 @@ async function fetchDashboard() {
     if (d.memory_journal && d.memory_journal.length > 0) {
       document.getElementById('lesson-count').innerText = d.memory_journal.length + ' ENTRIES';
       let html = '';
-      d.memory_journal.slice(-10).reverse().forEach(m => {
-        const pnl = Number(m.pnl_dollars || 0);
+      d.memory_journal.slice().reverse().forEach(l => {
+        const pnl = Number(l.pnl_dollars || 0);
         const col = pnl >= 0 ? 't-green' : 't-red';
-        html += `<tr><td>${(m.timestamp||'').split('T')[1]?.split('.')[0]||'--'}</td><td><b>${m.symbol}</b></td><td class="${col}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</td><td style="font-size:9px;">${m.lesson_learned||''}</td></tr>`;
+        const t = l.timestamp ? l.timestamp.substr(11,8) : '--';
+        html += `<tr><td>${t}</td><td><b>${l.symbol}</b></td><td class="${col}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.lesson_learned||''}</td></tr>`;
       });
       document.getElementById('memory-table').innerHTML = html;
     }
@@ -376,21 +406,15 @@ async function sendChat() {
   if (!msg) return;
   inp.value = '';
   const cc = document.getElementById('chat-console');
-  cc.innerHTML += `<div style="color:#0FF;margin-top:4px;">[YOU] ${msg}</div>`;
-  cc.innerHTML += `<div id="omni-thinking" style="color:#FFA500;font-style:italic;margin-top:2px;">[OMNI] Thinking...</div>`;
+  cc.innerHTML += `<div style="color:#0FF;">[YOU] ${msg}</div>`;
   cc.scrollTop = cc.scrollHeight;
   try {
     const r = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg}) });
     const d = await r.json();
-    const thinkingEl = document.getElementById('omni-thinking');
-    if (thinkingEl) thinkingEl.remove();
-    let reply = (d.reply || 'No response.').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    cc.innerHTML += `<div style="color:#0F0;margin-top:4px;line-height:1.4;">[OMNI]<br>${reply}</div>`;
+    cc.innerHTML += `<div style="color:#0F0;">[OMNI] ${d.reply || 'No response.'}</div>`;
     cc.scrollTop = cc.scrollHeight;
   } catch(e) {
-    const thinkingEl = document.getElementById('omni-thinking');
-    if (thinkingEl) thinkingEl.remove();
-    cc.innerHTML += `<div style="color:#F00;margin-top:4px;">[ERROR] Chat unavailable.</div>`;
+    cc.innerHTML += `<div style="color:#F00;">[ERROR] Chat unavailable.</div>`;
   }
 }
 </script>
@@ -414,11 +438,11 @@ def index():
 @app.route("/api/verify_pass", methods=["POST"])
 def verify_pass():
     data = request.get_json(silent=True) or {}
-    pw = str(data.get("password", "")).strip().lower()
-    # Case-insensitive check allowing omni2024, omni, admin, 1234, or empty submit
-    if not pw or pw in ("omni2024", "omnialpha", "alpha", "1234", "admin", "omni", "pass", "password"):
+    pw = data.get("password", "")
+    # Simple hardcoded passphrase — change as needed
+    if pw in ("omni2024", "omnialpha", "alpha", "1234"):
         return jsonify({"status": "SUCCESS"})
-    return jsonify({"status": "SUCCESS"})  # Grant access for hackathon demo convenience
+    return jsonify({"status": "DENIED"})
 
 
 @app.route("/api/state")
@@ -471,60 +495,17 @@ def chat():
         return jsonify({"reply": "No message received."})
     try:
         from core.deepseek_router import ai_router
-        state, _ = _get_state()
         account = alpaca_client.get_account_summary()
         positions = alpaca_client.get_positions()
-        recent_signals = state.get("recent_signals", [])
-        recent_lessons = reflexion_memory.get_all_entries()
-
-        # Format Open Positions Context
-        pos_lines = []
-        for p in positions:
-            sym = p.get("symbol", "")
-            qty = p.get("qty", 0)
-            mkt_val = float(p.get("market_value", 0))
-            unrealized_pl = float(p.get("unrealized_pl", 0))
-            pct = (unrealized_pl / mkt_val * 100) if mkt_val > 0 else 0.0
-            pos_lines.append(f"  - {sym}: {qty} shares | Market Value=${mkt_val:,.2f} | Unrealized P&L=${unrealized_pl:+.2f} ({pct:+.2f}%)")
-        pos_str = "\n".join(pos_lines) if pos_lines else "  - No active open positions."
-
-        # Format Recent Signals Context
-        sig_lines = [f"  - {s.get('symbol')}: Action={s.get('action')} | Reason={s.get('reason')} | Confidence={s.get('confidence')}" for s in recent_signals[:6]]
-        sig_str = "\n".join(sig_lines) if sig_lines else "  - No recent signals."
-
-        # Format Reflexion Memory Context
-        les_lines = [f"  - [{m.get('symbol')}] P&L=${m.get('pnl_dollars', 0):+.2f}: {m.get('lesson_learned')}" for m in recent_lessons[-5:]]
-        les_str = "\n".join(les_lines) if les_lines else "  - No past trade reflections recorded."
-
-        equity = account.get("equity", 100000.0)
-        buying_power = account.get("buying_power", 400000.0)
-        realized_pnl = state.get("realized_banked_profit", 0.0)
-
-        # Conversational greeting shortcut
-        msg_lower = user_msg.lower().strip().strip("!").strip(".")
-        if msg_lower in ["hi", "hello", "hey", "sup", "good morning", "good evening", "hi there", "who are you", "yo"]:
-            return jsonify({"reply": "Hello Principal. OmniAlpha neural core online and systems nominal. How can I assist you with the trading desk or portfolio today?"})
-
         sys_prompt = (
-            "You are OmniAlpha, an elite autonomous quantitative trading AI assistant. "
-            "Respond naturally, conversationally, and clearly like a top-tier quantitative researcher.\n\n"
-            "BEHAVIOR RULES:\n"
-            "- If the user asks a simple or conversational question, reply concisely in 1-3 natural sentences.\n"
-            "- If asked about portfolio performance, losses, positions, or trade reasoning, use structured bullet points and clean line breaks.\n"
-            "- NEVER dump an unreadable wall of text.\n\n"
-            "CURRENT LIVE PORTFOLIO STATE:\n"
-            f"- Account Equity: ${float(equity):,.2f}\n"
-            f"- Buying Power: ${float(buying_power):,.2f}\n"
-            f"- Realized Banked P&L: ${float(realized_pnl):+.2f}\n"
-            f"- Total Open Positions ({len(positions)}):\n{pos_str}\n"
-            f"- Recent AI Signals:\n{sig_str}\n"
-            f"- Reflexion Trade Journal Lessons:\n{les_str}\n"
+            "You are OmniAlpha, an elite autonomous quantitative trading AI. "
+            "Answer the portfolio manager's question concisely and authoritatively. "
+            f"Context: Equity=${account.get('equity', '?')}, Open Positions={len(positions)}."
         )
-
         reply = ai_router.query(prompt=user_msg, system_prompt=sys_prompt)
-        return jsonify({"reply": reply or "Neural core busy. Please try again."})
+        return jsonify({"reply": reply or "Neural core busy. Try again."})
     except Exception as e:
-        return jsonify({"reply": f"Error querying neural core: {e}"})
+        return jsonify({"reply": f"Error: {e}"})
 
 
 if __name__ == "__main__":
