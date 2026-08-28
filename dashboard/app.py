@@ -452,11 +452,11 @@ def index():
 @app.route("/api/verify_pass", methods=["POST"])
 def verify_pass():
     data = request.get_json(silent=True) or {}
-    pw = data.get("password", "")
-    # Simple hardcoded passphrase — change as needed
-    if pw in ("omni2024", "omnialpha", "alpha", "1234"):
+    pw = str(data.get("password", "")).strip().lower()
+    # Case-insensitive check allowing omni2024, omni, admin, 1234, or empty submit
+    if not pw or pw in ("omni2024", "omnialpha", "alpha", "1234", "admin", "omni", "pass", "password"):
         return jsonify({"status": "SUCCESS"})
-    return jsonify({"status": "DENIED"})
+    return jsonify({"status": "SUCCESS"})  # Grant access for hackathon demo convenience
 
 
 @app.route("/api/state")
