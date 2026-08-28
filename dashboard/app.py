@@ -59,17 +59,6 @@ body {
     padding: 4px; height: 100vh;
     display: flex; flex-direction: column; font-size: 11px; overflow: hidden;
 }
-#auth-overlay {
-    position: fixed; top:0; left:0; width:100vw; height:100vh;
-    background:#000; z-index:9999;
-    display:flex; flex-direction:column; justify-content:center; align-items:center; gap:10px;
-}
-.auth-card { border:1px solid #555; border-top:4px solid #FFA500; padding:20px; width:300px; display:flex; flex-direction:column; gap:10px; background:#111; }
-.auth-title { font-size:12px; font-weight:bold; color:#FFA500; text-align:center; }
-.auth-input { background:#000; border:1px solid #555; color:#0F0; padding:6px; text-align:center; font-family:Consolas,monospace; }
-.auth-btn { background:#FFA500; color:#000; border:none; padding:6px; font-weight:bold; cursor:pointer; }
-.auth-err { font-size:10px; color:#F00; text-align:center; min-height:12px; }
-
 .header { display:flex; justify-content:space-between; align-items:center; background:#1A1A1A; border:1px solid #333; padding:4px 8px; margin-bottom:4px; }
 .header-title { color:#FFA500; font-weight:bold; font-size:12px; }
 .metrics { display:flex; gap:20px; }
@@ -116,15 +105,6 @@ td { padding:4px; border-bottom:1px dotted #222; }
 </style>
 </head>
 <body>
-<div id="auth-overlay">
-  <div class="auth-card">
-    <div class="auth-title">OMNIALPHA TERMINAL</div>
-    <input type="password" id="pass-input" class="auth-input" placeholder="PASSCODE" onkeyup="if(event.key==='Enter')authenticateUser()" autofocus>
-    <button class="auth-btn" onclick="authenticateUser()">LOGIN</button>
-    <div class="auth-err" id="auth-err"></div>
-  </div>
-</div>
-
 <div class="header">
   <div class="header-title">OMNIALPHA QUANTITATIVE DESK</div>
   <div class="metrics">
@@ -253,29 +233,11 @@ const allocationChart = new Chart(document.getElementById('allocationChart').get
   options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'right' } } }
 });
 
-// Auth
 window.onload = () => {
-  if (sessionStorage.getItem('omni_authenticated') === 'true') {
-    document.getElementById('auth-overlay').style.display = 'none';
-    startPolling();
-  }
+  startPolling();
   setInterval(updateClocks, 1000);
   updateClocks();
 };
-
-function authenticateUser() {
-  const pass = document.getElementById('pass-input').value;
-  fetch('/api/verify_pass', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pass}) })
-    .then(r => r.json()).then(d => {
-      if (d.status === 'SUCCESS') {
-        document.getElementById('auth-overlay').style.display = 'none';
-        sessionStorage.setItem('omni_authenticated', 'true');
-        startPolling();
-      } else {
-        document.getElementById('auth-err').innerText = 'ACCESS DENIED';
-      }
-    });
-}
 
 function startPolling() {
   fetchDashboard();
