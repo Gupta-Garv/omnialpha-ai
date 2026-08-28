@@ -10,21 +10,20 @@ UNIVERSE = [
     "COIN", "MARA", "MSTR", "PLTR", "ARM", "CRWD", "NFLX", "UBER", "HOOD", "RIVN",
     "GLD", "XOM", "JNJ", "UNH"
 ]
-DEFAULT_TARGETS = ["NVDA", "PLTR", "SPY", "GLD", "XOM", "COIN"]
+DEFAULT_TARGETS = ["NVDA", "MSTR", "COIN", "TSLA", "PLTR", "CRWD"]
 
 
 class ScreenerAgent:
     """
-    Hourly momentum screener.
-    Ranks the universe by absolute % price change × volume score.
-    Updates TARGET_SYMBOLS with the top 6 most volatile/liquid names.
-    Falls back to DEFAULT_TARGETS on any error.
+    Relative Volume (RVOL) & Momentum Screener.
+    Ranks universe by intraday volatility % and relative volume surge.
+    Selects top names experiencing institutional volume flow.
     """
 
     def __init__(self):
         self._client = StockHistoricalDataClient(config.ALPACA_API_KEY, config.ALPACA_SECRET_KEY)
         self._last_scan = 0
-        self._scan_interval = 3600  # 1 hour
+        self._scan_interval = 1800  # 30 min
         self._current = list(DEFAULT_TARGETS)
 
     def get_targets(self) -> List[str]:
@@ -45,15 +44,16 @@ class ScreenerAgent:
                     continue
                 pct = abs((curr - prev) / prev * 100)
                 vol = snap.daily_bar.volume if snap.daily_bar else 0
-                score = pct * 1000 + vol / 100_000
+                # Score combines % price change and volume intensity
+                score = pct * 3.0 + (vol / 500_000)
                 scored.append((sym, score))
 
             scored.sort(key=lambda x: x[1], reverse=True)
-            top6 = [s[0] for s in scored[:6]]
-            if len(top6) == 6:
-                self._current = top6
+            top_symbols = [s[0] for s in scored[:6]]
+            if len(top_symbols) == 6:
+                self._current = top_symbols
                 self._last_scan = time.time()
-                print(f"  [SCREENER] Updated targets: {self._current}")
+                print(f"  [SCREENER] RVOL Momentum targets: {self._current}")
         except Exception as e:
             print(f"  [SCREENER] Error: {e}. Keeping current targets.")
 

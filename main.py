@@ -145,8 +145,8 @@ def run_trading_cycle(cycle: int):
             current_signals.append({"symbol": sym, "action": "HOLD_POSITION", "reason": "Already in portfolio.", "confidence": 0, "strategy_type": "HOLDING"})
             continue
 
-        if len(held_symbols) >= 6:
-            log(f"  ENTRY [{sym}] → max positions (6) reached.")
+        if len(held_symbols) >= 2:
+            log(f"  ENTRY [{sym}] → max active Tier-1 positions (2) reached.")
             break
 
         decision = committee.evaluate_entry(sym, account)

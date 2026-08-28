@@ -34,13 +34,13 @@ class Config:
     MAX_POSITION_RISK_PCT: float = float(os.getenv("MAX_POSITION_RISK_PCT", "5.0"))  # 5% of equity per trade
     STOP_LOSS_PCT: float = float(os.getenv("STOP_LOSS_PCT", "50.0"))
 
-    # Block Trade Size
-    BLOCK_NOTIONAL: float = 10000.0   # $10k per block trade
+    # Block Trade Size ($15k per Tier-1 trade, 0% margin risk)
+    BLOCK_NOTIONAL: float = 15000.0
 
     PORT: int = int(os.getenv("PORT", "8080"))
 
-    # Default watchlist (diversified multi-sector: Tech, Crypto, S&P 500, Gold, Energy)
-    TARGET_SYMBOLS = ["NVDA", "PLTR", "SPY", "GLD", "XOM", "COIN"]
+    # High-Velocity Breakout Targets
+    TARGET_SYMBOLS = ["NVDA", "MSTR", "COIN", "TSLA", "PLTR", "CRWD"]
 
     @staticmethod
     def is_market_open() -> bool:

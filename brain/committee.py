@@ -24,38 +24,35 @@ class TradingCommittee:
 
     ENTRY_SYSTEM_PROMPT = (
         "You are an elite autonomous quantitative trading AI managing a paper trading portfolio. "
-        "Your mandate: grow the account aggressively using a strict 3:1 Reward-to-Risk ratio on every trade. "
-        "You receive live news headlines and past trade lessons for a specific ticker. "
-        "DECISION RULES:\n"
-        "- If news shows bullish momentum, strong earnings, sector rotation, or unusual institutional activity → output PROPOSE_TRADE\n"
-        "- If news is negative, bearish, or unclear → output HOLD_CASH\n"
-        "- Default bias: PROPOSE_TRADE when in doubt (lean aggressive, we are paper trading)\n"
+        "Your mandate: hunt EXCLUSIVELY for ultra-high-conviction Tier-1 breakouts with massive profit upside. "
+        "Evaluate the ticker on 3 dimensions and calculate a CATALYST SCORE (0-100):\n"
+        "1. News & Catalyst Impact (0-40 pts): Major earnings beat, partnership, institutional volume, or sector surge.\n"
+        "2. Technical Alignment (0-40 pts): Price momentum breaking out above resistance with expanding volume.\n"
+        "3. Reflexion Memory Alignment (0-20 pts): Trade history confirms positive win setup for this ticker.\n\n"
         "OUTPUT FORMAT (exactly 2 lines):\n"
-        "Line 1: PROPOSE_TRADE or HOLD_CASH\n"
-        "Line 2: One sentence rationale."
+        "Line 1: PROPOSE_TRADE (SCORE: [0-100]) or HOLD_CASH (SCORE: [0-100])\n"
+        "Line 2: One sentence rationale summarizing the catalyst score."
     )
 
     EXIT_SYSTEM_PROMPT = (
-        "You are an aggressive autonomous quantitative trading AI managing open positions. "
-        "Your mandate: actively harvest profits and recycle capital into high-momentum trades. "
+        "You are an aggressive quantitative exit evaluator. "
         "DECISION RULES:\n"
-        "- P&L > +0.3%: output TAKE_PROFIT (bank the gains immediately)\n"
-        "- P&L < -0.3%: output CUT_LOSS (cut small loss quickly)\n"
-        "- If momentum has stalled: output TAKE_PROFIT or CUT_LOSS to recycle capital.\n"
+        "- P&L >= +8.0%: output TAKE_PROFIT (harvest macro trend runner)\n"
+        "- P&L >= +3.0%: output TAKE_PROFIT (bank Stage-1 gains)\n"
+        "- P&L <= -1.0%: output CUT_LOSS (cut loss to preserve capital)\n"
         "OUTPUT FORMAT (exactly 2 lines):\n"
         "Line 1: HOLD or TAKE_PROFIT or CUT_LOSS\n"
         "Line 2: One sentence rationale."
     )
 
     def evaluate_entry(self, symbol: str, account: Dict[str, Any]) -> Dict[str, Any]:
-        """Evaluate whether to enter a new position in `symbol`."""
+        """Evaluate whether to enter a new position in `symbol` using Catalyst Scoring (>= 80/100)."""
         equity = float(account.get("equity", 100000.0))
         buying_power = float(account.get("buying_power", 400000.0))
 
-        # Max risk per trade: 5% of equity
-        max_risk = equity * (config.MAX_POSITION_RISK_PCT / 100.0)
-        if config.BLOCK_NOTIONAL > buying_power:
-            return self._hold(symbol, "Insufficient buying power for block trade.")
+        trade_notional = 15000.0  # Safe $15,000 block trade (15% equity, 0% margin risk)
+        if trade_notional > buying_power:
+            return self._hold(symbol, "Insufficient buying power for $15k block trade.")
 
         headlines = news_scanner.get_headlines(symbol)
         lessons = reflexion_memory.get_lessons_for_symbol(symbol)
@@ -63,12 +60,12 @@ class TradingCommittee:
         user_prompt = (
             f"TICKER: {symbol}\n"
             f"LIVE NEWS:\n" + "\n".join(f"  - {h}" for h in headlines) + "\n\n"
-            f"PAST TRADE LESSONS:\n" + (
-                "\n".join(f"  - {l}" for l in lessons) if lessons else "  - No prior trades on this symbol."
+            f"PAST TRADE LESSONS (CLOSED TRADES ONLY):\n" + (
+                "\n".join(f"  - {l}" for l in lessons) if lessons else "  - No prior closed trades on this symbol."
             ) + "\n\n"
             f"ACCOUNT: Equity=${equity:,.0f}, Buying Power=${buying_power:,.0f}\n"
-            f"Proposed block size: ${config.BLOCK_NOTIONAL:,.0f}\n"
-            f"Should we enter a leveraged long position in {symbol} RIGHT NOW?"
+            f"Proposed block size: ${trade_notional:,.0f}\n"
+            f"Calculate Catalyst Score (0-100). Should we enter a $15,000 long position RIGHT NOW?"
         )
 
         response = ai_router.query(prompt=user_prompt, system_prompt=self.ENTRY_SYSTEM_PROMPT)
@@ -80,25 +77,23 @@ class TradingCommittee:
         action_raw = lines[0].upper() if lines else "HOLD_CASH"
         rationale = lines[1] if len(lines) > 1 else "AI autonomous decision."
 
-        if "PROPOSE_TRADE" in action_raw:
-            # Kelly Bet Sizing: Scale size by conviction level ($10k to $50k)
-            confidence = 0.85
-            if "STRONG" in rationale.upper() or "SURGE" in rationale.upper() or "BREAKOUT" in rationale.upper():
-                confidence = 0.90
-                trade_notional = min(50000.0, buying_power * 0.20)  # $50k Tier-1 bet
-            else:
-                trade_notional = config.BLOCK_NOTIONAL  # $10k base bet
+        # Parse Catalyst Score from AI response
+        import re
+        score_match = re.search(r"SCORE:\s*(\d+)", action_raw)
+        score = int(score_match.group(1)) if score_match else (85 if "PROPOSE_TRADE" in action_raw else 50)
 
+        # High-Conviction Gate: Only trade if score >= 80
+        if "PROPOSE_TRADE" in action_raw and score >= 80:
             return {
                 "symbol": symbol,
                 "action": "PROPOSE_TRADE",
                 "strategy_type": "MOMENTUM_LONG",
-                "confidence": confidence,
+                "confidence": round(score / 100.0, 2),
                 "notional": trade_notional,
-                "reason": rationale,
+                "reason": f"[Score {score}/100] {rationale}",
             }
 
-        return self._hold(symbol, rationale)
+        return self._hold(symbol, f"[Score {score}/100 < 80 Threshold] {rationale}")
 
     def evaluate_exit(self, position: Dict[str, Any]) -> Dict[str, Any]:
         """Evaluate whether to exit an open position instantly."""
@@ -107,19 +102,19 @@ class TradingCommittee:
         unrealized_pl = float(position.get("unrealized_pl", 0.0))
         pnl_pct = (unrealized_pl / market_value) * 100 if market_value > 0 else 0.0
 
-        # Multi-Stage Profit Harvesting & Stop Loss
-        if pnl_pct >= 4.0:
+        # Multi-Stage Asymmetric Payoff (+8.0% Macro Runner, +3.0% Stage-1, -1.0% Stop Loss)
+        if pnl_pct >= 8.0:
             return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol,
                     "reason": f"🚀 Macro breakout runner target hit +{pnl_pct:.2f}%. Harvesting +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
-        if pnl_pct >= 1.5:
+        if pnl_pct >= 3.0:
             return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol,
                     "reason": f"💰 Stage-1 profit target hit +{pnl_pct:.2f}%. Banking +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
-        if pnl_pct <= -0.8:
+        if pnl_pct <= -1.0:
             return {"action": "CUT_LOSS_EXIT", "symbol": symbol,
-                    "reason": f"🛡️ Stop loss hit {pnl_pct:.2f}%. Protecting capital.", "pnl": unrealized_pl}
+                    "reason": f"🛡️ Noise-resistant stop loss hit {pnl_pct:.2f}%. Protecting capital.", "pnl": unrealized_pl}
 
-        # Corridor active (-0.8% to +1.5%)
-        return {"action": "HOLD_POSITION", "symbol": symbol, "reason": f"Corridor active ({pnl_pct:+.2f}%). Allowing trade room to run.", "pnl": unrealized_pl}
+        # Position within active growth corridor (-1.0% to +3.0%)
+        return {"action": "HOLD_POSITION", "symbol": symbol, "reason": f"Growth corridor active ({pnl_pct:+.2f}%). Allowing trade room to run.", "pnl": unrealized_pl}
 
     @staticmethod
     def _hold(symbol: str, reason: str) -> Dict[str, Any]:
