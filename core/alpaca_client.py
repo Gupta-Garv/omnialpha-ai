@@ -46,12 +46,18 @@ class AlpacaClient:
             raw_pos = self.client.get_all_positions()
             formatted = []
             for p in raw_pos:
+                mkt_val = float(p.market_value) if p.market_value else 0.0
+                unreal_pl = float(p.unrealized_pl) if p.unrealized_pl else 0.0
+                cost_b = float(p.cost_basis) if getattr(p, "cost_basis", None) else (mkt_val - unreal_pl)
                 formatted.append({
                     "symbol": p.symbol,
                     "qty": str(p.qty),
                     "current_price": float(p.current_price) if p.current_price else 0.0,
-                    "market_value": float(p.market_value) if p.market_value else 0.0,
-                    "unrealized_pl": float(p.unrealized_pl) if p.unrealized_pl else 0.0
+                    "market_value": mkt_val,
+                    "unrealized_pl": unreal_pl,
+                    "cost_basis": cost_b,
+                    "avg_entry_price": float(p.avg_entry_price) if getattr(p, "avg_entry_price", None) else 0.0,
+                    "unrealized_plpc": (unreal_pl / cost_b * 100.0) if cost_b > 0 else 0.0,
                 })
             return formatted
         except Exception:

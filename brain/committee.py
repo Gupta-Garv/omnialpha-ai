@@ -100,7 +100,8 @@ class TradingCommittee:
         symbol = position.get("symbol", "")
         market_value = float(position.get("market_value", 1.0))
         unrealized_pl = float(position.get("unrealized_pl", 0.0))
-        pnl_pct = (unrealized_pl / market_value) * 100 if market_value > 0 else 0.0
+        cost_basis = float(position.get("cost_basis", market_value - unrealized_pl))
+        pnl_pct = (unrealized_pl / cost_basis) * 100.0 if cost_basis > 0 else 0.0
 
         # Multi-Stage Asymmetric Payoff (+8.0% Macro Runner, +3.0% Stage-1, -1.0% Stop Loss)
         if pnl_pct >= 8.0:

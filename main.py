@@ -147,7 +147,8 @@ def run_trading_cycle(cycle: int):
 
         if len(held_symbols) >= 2:
             log(f"  ENTRY [{sym}] → max active Tier-1 positions (2) reached.")
-            break
+            current_signals.append({"symbol": sym, "action": "HOLD_CASH", "reason": "Max active Tier-1 positions (2) reached.", "confidence": 0.50, "strategy_type": "CAPITAL_CAP"})
+            continue
 
         decision = committee.evaluate_entry(sym, account)
         action = decision["action"]

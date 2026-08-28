@@ -356,7 +356,8 @@ async function fetchDashboard() {
       const pctCol = pnlPct >= 0 ? 't-green' : 't-red';
       allocLabels.push(s.symbol);
       allocData.push(mktVal > 0 ? mktVal : 100);
-      heat += `<div class="h-cell ${cls}"><div class="h-sym">${s.symbol}</div><div class="h-pct ${pctCol}">${pctStr}</div><div class="h-val">${pxVal > 0 ? '$'+pxVal.toFixed(2) : '--'}</div></div>`;
+      const valDisplay = pxVal > 0 ? '$' + pxVal.toFixed(2) : (act === 'PROPOSE_TRADE' ? 'SIGNAL' : 'CASH');
+      heat += `<div class="h-cell ${cls}"><div class="h-sym">${s.symbol}</div><div class="h-pct ${pctCol}">${pctStr}</div><div class="h-val">${valDisplay}</div></div>`;
       const col = isBull ? 't-green' : 't-red';
       const confStr = ((s.confidence || 0.8) * 100).toFixed(0) + '%';
       sig += `<tr><td><b>${s.symbol}</b></td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.reason||''}</td><td class="${col}">${act}</td><td>${confStr}</td></tr>`;
@@ -488,7 +489,7 @@ def get_state():
         "signals": state.get("recent_signals", []),
         "equity_history": equity_history,
         "total_floating_pnl": round(total_floating_pnl, 2),
-        "realized_banked_profit": state.get("realized_banked_profit", realized),
+        "realized_banked_profit": state.get("realized_banked_profit") if state.get("realized_banked_profit", 0.0) != 0.0 else realized,
         "status": state.get("status", "ACTIVE"),
         "console_logs": state.get("console_logs", []),
         "memory_journal": reflexion_memory.get_all_entries(),
