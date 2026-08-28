@@ -497,17 +497,56 @@ def chat():
         return jsonify({"reply": "No message received."})
     try:
         from core.deepseek_router import ai_router
+        state, _ = _get_state()
         account = alpaca_client.get_account_summary()
         positions = alpaca_client.get_positions()
+        recent_signals = state.get("recent_signals", [])
+        recent_lessons = reflexion_memory.get_all_entries()
+
+        # Format Open Positions Context
+        pos_lines = []
+        for p in positions:
+            sym = p.get("symbol", "")
+            qty = p.get("qty", 0)
+            mkt_val = float(p.get("market_value", 0))
+            unrealized_pl = float(p.get("unrealized_pl", 0))
+            pct = (unrealized_pl / mkt_val * 100) if mkt_val > 0 else 0.0
+            pos_lines.append(f"  - {sym}: {qty} shares | Market Value=${mkt_val:,.2f} | Unrealized P&L=${unrealized_pl:+.2f} ({pct:+.2f}%)")
+        pos_str = "\n".join(pos_lines) if pos_lines else "  - No active open positions."
+
+        # Format Recent Signals Context
+        sig_lines = [f"  - {s.get('symbol')}: Action={s.get('action')} | Reason={s.get('reason')} | Confidence={s.get('confidence')}" for s in recent_signals[:6]]
+        sig_str = "\n".join(sig_lines) if sig_lines else "  - No recent signals."
+
+        # Format Reflexion Memory Context
+        les_lines = [f"  - [{m.get('symbol')}] P&L=${m.get('pnl_dollars', 0):+.2f}: {m.get('lesson_learned')}" for m in recent_lessons[-5:]]
+        les_str = "\n".join(les_lines) if les_lines else "  - No past trade reflections recorded."
+
+        equity = account.get("equity", 100000.0)
+        buying_power = account.get("buying_power", 400000.0)
+        realized_pnl = state.get("realized_banked_profit", 0.0)
+
         sys_prompt = (
-            "You are OmniAlpha, an elite autonomous quantitative trading AI. "
-            "Answer the portfolio manager's question concisely and authoritatively. "
-            f"Context: Equity=${account.get('equity', '?')}, Open Positions={len(positions)}."
+            "You are OmniAlpha, an elite autonomous quantitative trading AI managing this portfolio desk. "
+            "You have full live access to second-by-second portfolio positions, P&L, risk parameters, recent signals, and memory logs. "
+            "Answer the portfolio manager's question with 100% precision, analytical clarity, authority, and empirical data.\n\n"
+            "CURRENT LIVE PORTFOLIO STATE:\n"
+            f"- Account Equity: ${float(equity):,.2f}\n"
+            f"- Buying Power: ${float(buying_power):,.2f}\n"
+            f"- Realized Banked P&L: ${float(realized_pnl):+.2f}\n"
+            f"- Total Open Positions ({len(positions)}):\n{pos_str}\n"
+            f"- Recent AI Signals:\n{sig_str}\n"
+            f"- Reflexion Trade Journal Lessons:\n{les_str}\n\n"
+            "INSTRUCTIONS:\n"
+            "1. Give direct, quantitative, transparent answers using the live data above.\n"
+            "2. If asked why money was lost or made, explain the exact position pullbacks, margin size, or trade exits.\n"
+            "3. Keep answers authoritative, professional, and clear."
         )
+
         reply = ai_router.query(prompt=user_msg, system_prompt=sys_prompt)
-        return jsonify({"reply": reply or "Neural core busy. Try again."})
+        return jsonify({"reply": reply or "Neural core busy. Please try again."})
     except Exception as e:
-        return jsonify({"reply": f"Error: {e}"})
+        return jsonify({"reply": f"Error querying neural core: {e}"})
 
 
 if __name__ == "__main__":
