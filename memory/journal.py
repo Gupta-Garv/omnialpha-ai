@@ -61,7 +61,7 @@ class ReflexionMemory:
         return [
             item["lesson_learned"]
             for item in self.journal
-            if item["symbol"] == symbol and item.get("lesson_learned")
+            if item["symbol"] == symbol and item.get("status") == "CLOSED" and item.get("lesson_learned")
         ][-3:]
 
     def get_all_entries(self) -> List[Dict[str, Any]]:
