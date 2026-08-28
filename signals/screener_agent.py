@@ -8,7 +8,7 @@ from config import config
 UNIVERSE = [
     "SPY", "QQQ", "NVDA", "AAPL", "TSLA", "AMD", "MSFT", "AMZN", "META", "GOOGL",
     "COIN", "MARA", "MSTR", "PLTR", "ARM", "CRWD", "NFLX", "UBER", "HOOD", "RIVN",
-    "GLD", "XOM", "JNJ", "UNH"
+    "GLD", "XOM", "SMCI", "AVGO", "DELL", "ORCL", "DIS", "PYPL", "SQ", "ROKU"
 ]
 DEFAULT_TARGETS = ["NVDA", "MSTR", "COIN", "TSLA", "PLTR", "CRWD"]
 
