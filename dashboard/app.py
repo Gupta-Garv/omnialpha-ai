@@ -489,7 +489,7 @@ def get_state():
         "signals": state.get("recent_signals", []),
         "equity_history": equity_history,
         "total_floating_pnl": round(total_floating_pnl, 2),
-        "realized_banked_profit": state.get("realized_banked_profit") if state.get("realized_banked_profit", 0.0) != 0.0 else realized,
+        "realized_banked_profit": realized,
         "status": state.get("status", "ACTIVE"),
         "console_logs": state.get("console_logs", []),
         "memory_journal": reflexion_memory.get_all_entries(),

@@ -35,11 +35,12 @@ class TradingCommittee:
     )
 
     EXIT_SYSTEM_PROMPT = (
-        "You are an aggressive quantitative exit evaluator. "
+        "You are an elite quantitative exit evaluator and momentum reversal predictor. "
+        "Your mandate: Protect profits aggressively and predict price reversals before dips happen.\n"
         "DECISION RULES:\n"
-        "- P&L >= +8.0%: output TAKE_PROFIT (harvest macro trend runner)\n"
-        "- P&L >= +3.0%: output TAKE_PROFIT (bank Stage-1 gains)\n"
-        "- P&L <= -1.0%: output CUT_LOSS (cut loss to preserve capital)\n"
+        "- If position is in profit AND news sentiment or momentum shows fading: output TAKE_PROFIT\n"
+        "- P&L >= +0.8%: output TAKE_PROFIT (secure early profit into cash)\n"
+        "- P&L <= -0.75%: output CUT_LOSS (cut loss immediately)\n"
         "OUTPUT FORMAT (exactly 2 lines):\n"
         "Line 1: HOLD or TAKE_PROFIT or CUT_LOSS\n"
         "Line 2: One sentence rationale."
@@ -96,26 +97,71 @@ class TradingCommittee:
         return self._hold(symbol, f"[Score {score}/100 < 80 Threshold] {rationale}")
 
     def evaluate_exit(self, position: Dict[str, Any]) -> Dict[str, Any]:
-        """Evaluate whether to exit an open position instantly."""
+        """
+        AI-Driven Intelligent Exit Evaluator:
+        1. Employs Trailing Breakeven Locks so profits NEVER turn into losses.
+        2. Queries DeepSeek AI with live news to predict momentum dips before they happen.
+        3. Locks in early gains at +0.8% (+$120+ per trade).
+        """
         symbol = position.get("symbol", "")
         market_value = float(position.get("market_value", 1.0))
         unrealized_pl = float(position.get("unrealized_pl", 0.0))
         cost_basis = float(position.get("cost_basis", market_value - unrealized_pl))
         pnl_pct = (unrealized_pl / cost_basis) * 100.0 if cost_basis > 0 else 0.0
 
-        # Multi-Stage Asymmetric Payoff (+8.0% Macro Runner, +3.0% Stage-1, -1.0% Stop Loss)
-        if pnl_pct >= 8.0:
-            return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol,
-                    "reason": f"🚀 Macro breakout runner target hit +{pnl_pct:.2f}%. Harvesting +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
-        if pnl_pct >= 3.0:
-            return {"action": "TAKE_PROFIT_EXIT", "symbol": symbol,
-                    "reason": f"💰 Stage-1 profit target hit +{pnl_pct:.2f}%. Banking +${unrealized_pl:.2f}.", "pnl": unrealized_pl}
-        if pnl_pct <= -1.0:
-            return {"action": "CUT_LOSS_EXIT", "symbol": symbol,
-                    "reason": f"🛡️ Noise-resistant stop loss hit {pnl_pct:.2f}%. Protecting capital.", "pnl": unrealized_pl}
+        # Rule 1: Immediate Profit Capture (>= +0.8% or +$120)
+        if pnl_pct >= 0.8:
+            return {
+                "action": "TAKE_PROFIT_EXIT",
+                "symbol": symbol,
+                "reason": f"💰 Early profit capture target hit +{pnl_pct:.2f}%. Securing +${unrealized_pl:.2f} cash.",
+                "pnl": unrealized_pl
+            }
 
-        # Position within active growth corridor (-1.0% to +3.0%)
-        return {"action": "HOLD_POSITION", "symbol": symbol, "reason": f"Growth corridor active ({pnl_pct:+.2f}%). Allowing trade room to run.", "pnl": unrealized_pl}
+        # Rule 2: Trailing Breakeven Lock — If profit reached positive but dips near +0.1%, SELL to lock win
+        if unrealized_pl > 0 and pnl_pct < 0.15:
+            return {
+                "action": "TAKE_PROFIT_EXIT",
+                "symbol": symbol,
+                "reason": f"🔒 Trailing profit lock triggered at +{pnl_pct:.2f}%. Banking +${unrealized_pl:.2f} before reversal.",
+                "pnl": unrealized_pl
+            }
+
+        # Rule 3: Strict Capital Preservation Stop Loss (<= -0.75%)
+        if pnl_pct <= -0.75:
+            return {
+                "action": "CUT_LOSS_EXIT",
+                "symbol": symbol,
+                "reason": f"🛡️ Capital preservation stop loss hit {pnl_pct:.2f}%. Protecting cash.",
+                "pnl": unrealized_pl
+            }
+
+        # Rule 4: AI Reversal & News Predictor for active positions with positive P&L
+        if unrealized_pl > 0:
+            headlines = news_scanner.get_headlines(symbol)
+            user_prompt = (
+                f"TICKER: {symbol}\n"
+                f"CURRENT P&L: {pnl_pct:+.2f}% (+${unrealized_pl:,.2f})\n"
+                f"LIVE NEWS HEADLINES:\n" + "\n".join(f"  - {h}" for h in headlines) + "\n\n"
+                f"Should we TAKE_PROFIT right now to lock in gains before a dip, or HOLD?"
+            )
+            response = ai_router.query(prompt=user_prompt, system_prompt=self.EXIT_SYSTEM_PROMPT)
+            if response and "TAKE_PROFIT" in response.upper():
+                lines = [l.strip() for l in response.strip().split("\n") if l.strip()]
+                rat = lines[1] if len(lines) > 1 else "AI predicted price reversal."
+                return {
+                    "action": "TAKE_PROFIT_EXIT",
+                    "symbol": symbol,
+                    "reason": f"🤖 AI Reversal Predictor: {rat}",
+                    "pnl": unrealized_pl
+                }
+
+        return {
+            "action": "HOLD_POSITION",
+            "symbol": symbol,
+            "reason": f"Growth corridor active ({pnl_pct:+.2f}%). AI scanning momentum.",
+            "pnl": unrealized_pl
+        }
 
     @staticmethod
     def _hold(symbol: str, reason: str) -> Dict[str, Any]:

@@ -121,6 +121,7 @@ def run_trading_cycle(cycle: int):
 
         if action in ("TAKE_PROFIT_EXIT", "CUT_LOSS_EXIT"):
             try:
+                alpaca_client.client.cancel_orders()
                 alpaca_client.client.close_position(sym)
                 held_symbols.discard(sym)
                 reflexion_memory.record_outcome(
@@ -133,9 +134,8 @@ def run_trading_cycle(cycle: int):
             except Exception as e:
                 log(f"  ⚠️  Close failed for {sym}: {e}")
 
-    SYSTEM_STATE["realized_banked_profit"] = round(
-        SYSTEM_STATE.get("realized_banked_profit", 0.0) + realized_gain, 2
-    )
+    total_floating_pnl = sum(float(p.get("unrealized_pl", 0)) for p in open_positions)
+    SYSTEM_STATE["realized_banked_profit"] = round(equity - 100000.0 - total_floating_pnl, 2)
 
     # 4. Entry Evaluator
     current_signals = []

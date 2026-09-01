@@ -26,9 +26,10 @@
     "symbol": "ARM",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -314.19,
+    "lesson_learned": "LOSS -$314.19 (-2.1%). Require stronger catalyst next time.",
+    "pnl_pct": -2.14
   },
   {
     "id": "T4_PYPL_1788021026",
@@ -36,9 +37,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3302.2,
+    "lesson_learned": "LOSS -$3302.20 (-1.9%). Require stronger catalyst next time.",
+    "pnl_pct": -1.87
   },
   {
     "id": "T5_MARA_1788021069",
@@ -46,9 +48,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3232.02,
+    "lesson_learned": "LOSS -$3232.02 (-2.0%). Require stronger catalyst next time.",
+    "pnl_pct": -2.0
   },
   {
     "id": "T6_PYPL_1788021133",
@@ -56,9 +59,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3302.2,
+    "lesson_learned": "LOSS -$3302.20 (-1.9%). Require stronger catalyst next time.",
+    "pnl_pct": -1.87
   },
   {
     "id": "T7_MARA_1788021182",
@@ -66,9 +70,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3544.01,
+    "lesson_learned": "LOSS -$3544.01 (-2.2%). Require stronger catalyst next time.",
+    "pnl_pct": -2.2
   },
   {
     "id": "T8_PYPL_1788021246",
@@ -76,9 +81,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3406.58,
+    "lesson_learned": "LOSS -$3406.58 (-1.9%). Require stronger catalyst next time.",
+    "pnl_pct": -1.93
   },
   {
     "id": "T9_MARA_1788021293",
@@ -86,9 +92,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -2916.91,
+    "lesson_learned": "LOSS -$2916.91 (-1.8%). Require stronger catalyst next time.",
+    "pnl_pct": -1.8
   },
   {
     "id": "T10_PYPL_1788021358",
@@ -96,9 +103,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3406.58,
+    "lesson_learned": "LOSS -$3406.58 (-1.9%). Require stronger catalyst next time.",
+    "pnl_pct": -1.93
   },
   {
     "id": "T11_MARA_1788021406",
@@ -106,9 +114,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -2764.03,
+    "lesson_learned": "LOSS -$2764.03 (-1.7%). Require stronger catalyst next time.",
+    "pnl_pct": -1.7
   },
   {
     "id": "T12_PYPL_1788021470",
@@ -116,9 +125,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3393.03,
+    "lesson_learned": "LOSS -$3393.03 (-1.9%). Require stronger catalyst next time.",
+    "pnl_pct": -1.92
   },
   {
     "id": "T13_MARA_1788021518",
@@ -126,9 +136,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -2764.03,
+    "lesson_learned": "LOSS -$2764.03 (-1.7%). Require stronger catalyst next time.",
+    "pnl_pct": -1.7
   },
   {
     "id": "T14_PYPL_1788021582",
@@ -136,9 +147,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3393.03,
+    "lesson_learned": "LOSS -$3393.03 (-1.9%). Require stronger catalyst next time.",
+    "pnl_pct": -1.92
   },
   {
     "id": "T15_MARA_1788021630",
@@ -146,9 +158,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -2916.91,
+    "lesson_learned": "LOSS -$2916.91 (-1.8%). Require stronger catalyst next time.",
+    "pnl_pct": -1.8
   },
   {
     "id": "T16_PYPL_1788021695",
@@ -156,9 +169,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3393.03,
+    "lesson_learned": "LOSS -$3393.03 (-1.9%). Require stronger catalyst next time.",
+    "pnl_pct": -1.92
   },
   {
     "id": "T17_MARA_1788021743",
@@ -166,9 +180,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -1360.07,
+    "lesson_learned": "LOSS -$1360.07 (-0.8%). Require stronger catalyst next time.",
+    "pnl_pct": -0.83
   },
   {
     "id": "T18_PYPL_1788021807",
@@ -176,9 +191,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3393.03,
+    "lesson_learned": "LOSS -$3393.03 (-1.9%). Require stronger catalyst next time.",
+    "pnl_pct": -1.92
   },
   {
     "id": "T19_MARA_1788021855",
@@ -186,9 +202,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -1308.59,
+    "lesson_learned": "LOSS -$1308.59 (-0.8%). Require stronger catalyst next time.",
+    "pnl_pct": -0.8
   },
   {
     "id": "T20_PYPL_1788021919",
@@ -196,9 +213,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3393.03,
+    "lesson_learned": "LOSS -$3393.03 (-1.9%). Require stronger catalyst next time.",
+    "pnl_pct": -1.92
   },
   {
     "id": "T21_MARA_1788021967",
@@ -206,9 +224,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -1311.71,
+    "lesson_learned": "LOSS -$1311.71 (-0.8%). Require stronger catalyst next time.",
+    "pnl_pct": -0.8
   },
   {
     "id": "T22_PYPL_1788022032",
@@ -216,9 +235,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3393.03,
+    "lesson_learned": "LOSS -$3393.03 (-1.9%). Require stronger catalyst next time.",
+    "pnl_pct": -1.92
   },
   {
     "id": "T23_MARA_1788022080",
@@ -226,9 +246,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -1311.71,
+    "lesson_learned": "LOSS -$1311.71 (-0.8%). Require stronger catalyst next time.",
+    "pnl_pct": -0.8
   },
   {
     "id": "T24_PYPL_1788022144",
@@ -236,9 +257,10 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3257.46,
+    "lesson_learned": "LOSS -$3257.46 (-1.8%). Require stronger catalyst next time.",
+    "pnl_pct": -1.84
   },
   {
     "id": "T25_MARA_1788022192",
@@ -246,9 +268,10 @@
     "symbol": "MARA",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -1311.71,
+    "lesson_learned": "LOSS -$1311.71 (-0.8%). Require stronger catalyst next time.",
+    "pnl_pct": -0.8
   },
   {
     "id": "T26_PYPL_1788022257",
@@ -256,8 +279,9 @@
     "symbol": "PYPL",
     "strategy": "MOMENTUM_LONG",
     "confidence": 0.85,
-    "status": "OPEN",
-    "pnl_dollars": 0.0,
-    "lesson_learned": "Trade active in portfolio."
+    "status": "CLOSED",
+    "pnl_dollars": -3257.46,
+    "lesson_learned": "LOSS -$3257.46 (-1.8%). Require stronger catalyst next time.",
+    "pnl_pct": -1.84
   }
 ]
