@@ -11,6 +11,7 @@ class Config:
     BASE_URL: str = "https://paper-api.alpaca.markets" if ALPACA_PAPER else "https://api.alpaca.markets"
     DATA_URL: str = "https://data.alpaca.markets"
 
+    EXECUTION_MODE: str = os.getenv("EXECUTION_MODE", "FULL").upper()
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
     # Nvidia NIM API Keys for DeepSeek V4 Flash

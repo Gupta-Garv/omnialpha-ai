@@ -120,19 +120,22 @@ def run_trading_cycle(cycle: int):
         log(f"  EXIT [{sym}] → {action} | P&L=${pnl:.2f} | {reason}")
 
         if action in ("TAKE_PROFIT_EXIT", "CUT_LOSS_EXIT"):
-            try:
-                alpaca_client.client.cancel_orders()
-                alpaca_client.client.close_position(sym)
-                held_symbols.discard(sym)
-                reflexion_memory.record_outcome(
-                    symbol=sym,
-                    pnl_dollars=pnl,
-                    pnl_pct=(pnl / float(pos.get("market_value", 1))) * 100,
-                )
-                realized_gain += pnl
-                log(f"  ✅ CLOSED {sym}: ${pnl:+.2f}")
-            except Exception as e:
-                log(f"  ⚠️  Close failed for {sym}: {e}")
+            if config.EXECUTION_MODE == "READ_ONLY":
+                log(f"  👁️  [READ_ONLY] Exit signal triggered for {sym}: {action}. Order submission bypassed.")
+            else:
+                try:
+                    alpaca_client.client.cancel_orders()
+                    alpaca_client.client.close_position(sym)
+                    held_symbols.discard(sym)
+                    reflexion_memory.record_outcome(
+                        symbol=sym,
+                        pnl_dollars=pnl,
+                        pnl_pct=(pnl / float(pos.get("market_value", 1))) * 100,
+                    )
+                    realized_gain += pnl
+                    log(f"  ✅ CLOSED {sym}: ${pnl:+.2f}")
+                except Exception as e:
+                    log(f"  ⚠️  Close failed for {sym}: {e}")
 
     total_floating_pnl = sum(float(p.get("unrealized_pl", 0)) for p in open_positions)
     SYSTEM_STATE["realized_banked_profit"] = round(equity - 100000.0 - total_floating_pnl, 2)
@@ -157,14 +160,17 @@ def run_trading_cycle(cycle: int):
         current_signals.append(decision)
 
         if action == "PROPOSE_TRADE":
-            trade_notional = decision.get("notional", config.BLOCK_NOTIONAL)
-            result = alpaca_client.submit_paper_trade(sym, side="buy", notional=trade_notional)
-            if result.get("status") == "SUBMITTED":
-                held_symbols.add(sym)
-                reflexion_memory.record_entry(sym, decision.get("strategy_type", "MOMENTUM_LONG"), decision.get("confidence", 0.85))
-                log(f"  🚀 ORDER SENT: {sym} ${trade_notional:,.0f} | ID={result.get('order_id')}")
+            if config.EXECUTION_MODE == "READ_ONLY":
+                log(f"  👁️  [READ_ONLY] Buy signal triggered for {sym}. Order submission bypassed.")
             else:
-                log(f"  ⚠️  Order failed for {sym}: {result.get('error', 'Unknown error')}")
+                trade_notional = decision.get("notional", config.BLOCK_NOTIONAL)
+                result = alpaca_client.submit_paper_trade(sym, side="buy", notional=trade_notional)
+                if result.get("status") == "SUBMITTED":
+                    held_symbols.add(sym)
+                    reflexion_memory.record_entry(sym, decision.get("strategy_type", "MOMENTUM_LONG"), decision.get("confidence", 0.85))
+                    log(f"  🚀 ORDER SENT: {sym} ${trade_notional:,.0f} | ID={result.get('order_id')}")
+                else:
+                    log(f"  ⚠️  Order failed for {sym}: {result.get('error', 'Unknown error')}")
 
     SYSTEM_STATE["recent_signals"] = current_signals
     log(f"=== CYCLE #{cycle} END ===\n")
