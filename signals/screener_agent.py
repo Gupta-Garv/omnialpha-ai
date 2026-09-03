@@ -23,7 +23,7 @@ class ScreenerAgent:
     def __init__(self):
         self._client = StockHistoricalDataClient(config.ALPACA_API_KEY, config.ALPACA_SECRET_KEY)
         self._last_scan = 0
-        self._scan_interval = 1800  # 30 min
+        self._scan_interval = 300  # 5-minute dynamic scan interval
         self._current = list(DEFAULT_TARGETS)
 
     def get_targets(self) -> List[str]:

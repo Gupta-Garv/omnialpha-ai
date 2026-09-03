@@ -24,10 +24,9 @@ class Config:
     # AI Model Names (verified working)
     DEEPSEEK_MODEL: str = "deepseek-ai/deepseek-v4-flash-0731"
     GEMINI_MODELS: list = [
-        "models/gemini-3.5-flash-lite",
-        "models/gemini-3.1-flash-lite",
-        "models/gemini-flash-lite-latest",
-        "models/gemini-3.5-flash"
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-2.5-flash-lite"
     ]
 
     # Risk Parameters

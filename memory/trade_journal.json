@@ -283,5 +283,195 @@
     "pnl_dollars": -3257.46,
     "lesson_learned": "LOSS -$3257.46 (-1.8%). Require stronger catalyst next time.",
     "pnl_pct": -1.84
+  },
+  {
+    "id": "T27_MSTR_1788285862",
+    "timestamp": "2026-09-01T23:34:22.094306",
+    "symbol": "MSTR",
+    "strategy": "CATALYST_DIP_BUY",
+    "confidence": 0.85,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T28_PLTR_1788416819",
+    "timestamp": "2026-09-03T11:56:59.031557",
+    "symbol": "PLTR",
+    "strategy": "CATALYST_DIP_BUY",
+    "confidence": 0.85,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T29_PLTR_1788418913",
+    "timestamp": "2026-09-03T12:31:53.118855",
+    "symbol": "PLTR",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.92,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T30_PLTR_1788419263",
+    "timestamp": "2026-09-03T12:37:43.092564",
+    "symbol": "PLTR",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.92,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T31_AVGO_1788419326",
+    "timestamp": "2026-09-03T12:38:46.979983",
+    "symbol": "AVGO",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.92,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T32_PLTR_1788419352",
+    "timestamp": "2026-09-03T12:39:12.445887",
+    "symbol": "PLTR",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.89,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T33_DELL_1788419589",
+    "timestamp": "2026-09-03T12:43:09.514156",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.8,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T34_DELL_1788420006",
+    "timestamp": "2026-09-03T12:50:06.404359",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.8,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T35_DELL_1788420048",
+    "timestamp": "2026-09-03T12:50:48.093722",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.8,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T36_DELL_1788420198",
+    "timestamp": "2026-09-03T12:53:18.281361",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.8,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T37_DELL_1788420401",
+    "timestamp": "2026-09-03T12:56:41.421970",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.8,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T38_DELL_1788420600",
+    "timestamp": "2026-09-03T13:00:00.154562",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.8,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T39_DELL_1788420692",
+    "timestamp": "2026-09-03T13:01:32.867498",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.8,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T40_DELL_1788420830",
+    "timestamp": "2026-09-03T13:03:50.049214",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.8,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T41_DELL_1788420980",
+    "timestamp": "2026-09-03T13:06:20.219278",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.8,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T42_DELL_1788421163",
+    "timestamp": "2026-09-03T13:09:23.828002",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.8,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T43_DELL_1788421745",
+    "timestamp": "2026-09-03T13:19:05.826403",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.82,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T44_DELL_1788422353",
+    "timestamp": "2026-09-03T13:29:13.372405",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.82,
+    "status": "CLOSED",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Position closed / liquidated."
+  },
+  {
+    "id": "T45_DELL_1788422650",
+    "timestamp": "2026-09-03T13:34:10.642036",
+    "symbol": "DELL",
+    "strategy": "AI_SELECT_DIP",
+    "confidence": 0.82,
+    "status": "OPEN",
+    "pnl_dollars": 0.0,
+    "lesson_learned": "Trade active in portfolio."
   }
 ]

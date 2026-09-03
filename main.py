@@ -26,6 +26,7 @@ from core.alpaca_client import alpaca_client
 from brain.committee import committee
 from signals.screener_agent import screener_agent
 from memory.journal import reflexion_memory
+from core.deepseek_router import ai_router
 
 # ── Shared state (dashboard reads from this dict) ──────────────────────────
 SYSTEM_STATE = {
@@ -34,6 +35,8 @@ SYSTEM_STATE = {
     "realized_banked_profit": 0.0,
     "recent_signals": [],
     "console_logs": [],
+    "ai_cognition_stream": "🧠 [AI MASTER TRADER COGNITION] Engine initializing real-time market evaluation...",
+    "revolver_status": {}
 }
 
 EQUITY_HISTORY = []
@@ -107,7 +110,10 @@ def run_trading_cycle(cycle: int):
         EQUITY_HISTORY.pop(0)
 
     open_positions = alpaca_client.get_positions()
-    held_symbols = {p["symbol"] for p in open_positions}
+    pending_symbols = alpaca_client.get_pending_order_symbols()
+    active_symbols = {p["symbol"] for p in open_positions}
+    held_symbols = active_symbols | set(pending_symbols)
+    reflexion_memory.reconcile_journal(held_symbols)
 
     # 3. Exit Predictor
     realized_gain = 0.0
@@ -121,7 +127,7 @@ def run_trading_cycle(cycle: int):
 
         if action in ("TAKE_PROFIT_EXIT", "CUT_LOSS_EXIT"):
             if config.EXECUTION_MODE == "READ_ONLY":
-                log(f"  👁️  [READ_ONLY] Exit signal triggered for {sym}: {action}. Order submission bypassed.")
+                log(f"  [READ_ONLY] Exit signal triggered for {sym}: {action}. Order submission bypassed.")
             else:
                 try:
                     alpaca_client.client.cancel_orders()
@@ -133,44 +139,58 @@ def run_trading_cycle(cycle: int):
                         pnl_pct=(pnl / float(pos.get("market_value", 1))) * 100,
                     )
                     realized_gain += pnl
-                    log(f"  ✅ CLOSED {sym}: ${pnl:+.2f}")
+                    log(f"  CLOSED {sym}: ${pnl:+.2f}")
                 except Exception as e:
-                    log(f"  ⚠️  Close failed for {sym}: {e}")
+                    log(f"  Close failed for {sym}: {e}")
 
     total_floating_pnl = sum(float(p.get("unrealized_pl", 0)) for p in open_positions)
     SYSTEM_STATE["realized_banked_profit"] = round(equity - 100000.0 - total_floating_pnl, 2)
 
-    # 4. Entry Evaluator
+    # 4. AI Holistic Portfolio Entry Evaluator & Cognition Stream
+    holistic = committee.evaluate_portfolio_holistic(targets, account, open_positions, held_symbols)
+    SYSTEM_STATE["ai_cognition_stream"] = holistic.get("cognition_stream", "")
+    SYSTEM_STATE["revolver_status"] = ai_router.get_revolver_status()
+    log(f"{SYSTEM_STATE['ai_cognition_stream']}")
+
     current_signals = []
-    for sym in targets:
-        if sym in held_symbols:
-            log(f"  ENTRY [{sym}] → already held, skipping.")
-            current_signals.append({"symbol": sym, "action": "HOLD_POSITION", "reason": "Already in portfolio.", "confidence": 0, "strategy_type": "HOLDING"})
-            continue
+    
+    # Show status for currently held positions
+    for sym in held_symbols:
+        current_signals.append({
+            "symbol": sym,
+            "action": "HOLD_POSITION",
+            "reason": "Active position under AI risk & target supervision.",
+            "confidence": 0.85,
+            "strategy_type": "HOLDING"
+        })
 
-        if len(held_symbols) >= 2:
-            log(f"  ENTRY [{sym}] → max active Tier-1 positions (2) reached.")
-            current_signals.append({"symbol": sym, "action": "HOLD_CASH", "reason": "Max active Tier-1 positions (2) reached.", "confidence": 0.50, "strategy_type": "CAPITAL_CAP"})
-            continue
-
-        decision = committee.evaluate_entry(sym, account)
-        action = decision["action"]
-        reason = decision["reason"]
-        log(f"  ENTRY [{sym}] → {action} | {reason}")
-        current_signals.append(decision)
-
-        if action == "PROPOSE_TRADE":
+    if len(held_symbols) >= 3:
+        log("  ENTRY → Max active portfolio positions (3) reached. Maintaining capital protection.")
+    else:
+        best_opp = holistic.get("entry_decision", {})
+        sym = best_opp.get("symbol")
+        action = best_opp.get("action")
+        reason = best_opp.get("reason")
+        
+        if action == "PROPOSE_TRADE" and sym and sym != "NONE" and sym != "ALL":
+            log(f"  ENTRY [{sym}] → PROPOSE_TRADE | {reason}")
+            current_signals.append(best_opp)
+            
             if config.EXECUTION_MODE == "READ_ONLY":
-                log(f"  👁️  [READ_ONLY] Buy signal triggered for {sym}. Order submission bypassed.")
+                log(f"  [READ_ONLY] AI Buy signal for {sym}. Order submission bypassed.")
             else:
-                trade_notional = decision.get("notional", config.BLOCK_NOTIONAL)
+                trade_notional = best_opp.get("notional", config.BLOCK_NOTIONAL)
                 result = alpaca_client.submit_paper_trade(sym, side="buy", notional=trade_notional)
-                if result.get("status") == "SUBMITTED":
+                if result.get("status") in ("SUBMITTED", "SUCCESS"):
                     held_symbols.add(sym)
-                    reflexion_memory.record_entry(sym, decision.get("strategy_type", "MOMENTUM_LONG"), decision.get("confidence", 0.85))
-                    log(f"  🚀 ORDER SENT: {sym} ${trade_notional:,.0f} | ID={result.get('order_id')}")
+                    reflexion_memory.record_entry(sym, best_opp.get("strategy_type", "AI_SELECT_DIP"), best_opp.get("confidence", 0.85))
+                    log(f"  ORDER SENT: {sym} ${trade_notional:,.0f} | ID={result.get('order_id')}")
+                elif result.get("status") == "SKIPPED":
+                    log(f"  {sym} order skipped: {result.get('reason')}")
                 else:
-                    log(f"  ⚠️  Order failed for {sym}: {result.get('error', 'Unknown error')}")
+                    log(f"  Order failed for {sym}: {result.get('error', result.get('reason', 'Unknown error'))}")
+        else:
+            log(f"  ENTRY → HOLD_CASH | {reason}")
 
     SYSTEM_STATE["recent_signals"] = current_signals
     log(f"=== CYCLE #{cycle} END ===\n")
@@ -179,7 +199,7 @@ def run_trading_cycle(cycle: int):
 # ── Main Loop ──────────────────────────────────────────────────────────────
 def main():
     print("=" * 60)
-    print("🚀  OmniAlpha Autonomous Trading Engine")
+    print("  OmniAlpha Autonomous Trading Engine")
     print(f"    Paper Mode: {config.ALPACA_PAPER}")
     print(f"    Block Size: ${config.BLOCK_NOTIONAL:,.0f}")
     print(f"    Dashboard:  http://0.0.0.0:{config.PORT}")
@@ -205,7 +225,7 @@ def main():
             log(f"CYCLE ERROR: {e}")
             traceback.print_exc()
 
-        time.sleep(15)  # 15s between cycles → well within Gemini free-tier limits
+        time.sleep(5)  # 5-second high-velocity cycle interval powered by Revolver Key Rotator
 
 
 if __name__ == "__main__":

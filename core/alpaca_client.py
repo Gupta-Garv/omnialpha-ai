@@ -63,6 +63,16 @@ class AlpacaClient:
         except Exception:
             return []
 
+    def get_pending_order_symbols(self) -> List[str]:
+        """Fetch list of tickers with currently open/pending orders."""
+        if not self.client:
+            return []
+        try:
+            open_orders = self.client.get_orders()
+            return [o.symbol for o in open_orders if hasattr(o, "symbol")]
+        except Exception:
+            return []
+
     def close_all_positions(self) -> Dict[str, Any]:
         """Liquidate all open positions to free up cash/buying power."""
         if not self.client:
@@ -80,6 +90,16 @@ class AlpacaClient:
 
         try:
             order_side = OrderSide.BUY if side.lower() == "buy" else OrderSide.SELL
+
+            # Check if an open order already exists for this symbol to prevent buying power lockup
+            try:
+                open_orders = self.client.get_orders()
+                for o in open_orders:
+                    if o.symbol == symbol and str(o.side).lower().endswith(side.lower()):
+                        print(f"  [ALPACA] Order already pending for {symbol} ({o.side}), skipping duplicate.")
+                        return {"status": "SKIPPED", "reason": "Order already pending"}
+            except Exception:
+                pass
             
             # Default to institutional block sizing if neither qty nor notional is specified
             if qty is None and notional is None:
@@ -115,5 +135,15 @@ class AlpacaClient:
                 "symbol": symbol,
                 "error": str(e)
             }
+
+    def close_position(self, symbol: str) -> Dict[str, Any]:
+        """Close an individual ticker position."""
+        if not self.client:
+            return {"status": "FAILED", "reason": "Client not initialized"}
+        try:
+            res = self.client.close_position(symbol)
+            return {"status": "SUCCESS", "message": f"Position {symbol} closed."}
+        except Exception as e:
+            return {"status": "FAILED", "reason": str(e)}
 
 alpaca_client = AlpacaClient()

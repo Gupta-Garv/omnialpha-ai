@@ -4,7 +4,6 @@ OmniAlpha Dashboard — Flask Web UI
 This module is a PURE READ-ONLY view layer.
 It reads from main.SYSTEM_STATE and main.EQUITY_HISTORY (shared dicts).
 It does NOT call any AI, does NOT run any trading logic.
-This prevents the circular import chain that was crashing the server.
 """
 
 import sys
@@ -17,28 +16,26 @@ from flask import Flask, jsonify, request, render_template_string
 
 app = Flask(__name__)
 
-# ---------------------------------------------------------------------------
-# Lazy import of shared state from main so we don't create a circular import.
-# main.py imports dashboard.app — dashboard.app must NOT import from main at
-# module level.  We lazily fetch the state in every request handler.
-# ---------------------------------------------------------------------------
 
 def _get_state():
     """Return (SYSTEM_STATE, EQUITY_HISTORY) from the main engine module."""
-    try:
-        if "__main__" in sys.modules and hasattr(sys.modules["__main__"], "SYSTEM_STATE"):
-            return sys.modules["__main__"].SYSTEM_STATE, sys.modules["__main__"].EQUITY_HISTORY
-        import main as _m
-        return _m.SYSTEM_STATE, _m.EQUITY_HISTORY
-    except Exception:
-        # Fallback empty state when dashboard is booted standalone
-        return {
-            "kill_switch_engaged": False,
-            "status": "ACTIVE",
-            "realized_banked_profit": 0.0,
-            "recent_signals": [],
-            "console_logs": ["[SYSTEM] Dashboard booted. Waiting for engine..."],
-        }, []
+    main_mod = sys.modules.get("__main__")
+    if main_mod and hasattr(main_mod, "SYSTEM_STATE") and "ai_cognition_stream" in main_mod.SYSTEM_STATE:
+        return main_mod.SYSTEM_STATE, main_mod.EQUITY_HISTORY
+
+    m_mod = sys.modules.get("main")
+    if m_mod and hasattr(m_mod, "SYSTEM_STATE"):
+        return m_mod.SYSTEM_STATE, m_mod.EQUITY_HISTORY
+
+    return {
+        "kill_switch_engaged": False,
+        "status": "ACTIVE",
+        "realized_banked_profit": 0.0,
+        "recent_signals": [],
+        "console_logs": ["[SYSTEM] Dashboard booted. Waiting for engine..."],
+        "ai_cognition_stream": "[AI MASTER TRADER COGNITION] Engine scanning market feeds...",
+        "revolver_status": {}
+    }, []
 
 
 # ---------------------------------------------------------------------------
@@ -86,28 +83,37 @@ body {
 
 .terminal-grid {
     display:grid;
-    grid-template-columns: 35% 35% 30%;
+    grid-template-columns: 32% 34% 34%;
     grid-template-rows: 50% 50%;
-    gap:4px; flex-grow:1; height:calc(100vh - 55px);
+    gap:4px; flex-grow:1; height:calc(100vh - 52px);
 }
 .panel { background:#0A0A0A; border:1px solid #333; display:flex; flex-direction:column; overflow:hidden; }
 .panel-head { background:#1A1A1A; border-bottom:1px solid #333; padding:4px 6px; display:flex; justify-content:space-between; align-items:center; }
 .panel-title { color:#FFA500; font-weight:bold; font-size:11px; text-transform:uppercase; }
 .panel-subtitle { color:#666; font-size:10px; font-family:Consolas,monospace; }
 .panel-body { padding:4px; flex-grow:1; overflow-y:auto; }
+
 table { width:100%; border-collapse:collapse; font-family:Consolas,monospace; font-size:10px; }
 th { text-align:left; color:#888; border-bottom:1px solid #333; padding:4px; font-weight:normal; position:sticky; top:0; background:#0A0A0A; }
 td { padding:4px; border-bottom:1px dotted #222; }
 .t-green { color:#0F0; } .t-red { color:#F00; } .t-cyan { color:#0FF; }
+
 .heatmap { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; }
-.h-cell { border:1px solid #333; padding:4px; display:flex; flex-direction:column; justify-content:center; align-items:center; height:60px; }
+.h-cell { border:1px solid #333; padding:4px; display:flex; flex-direction:column; justify-content:center; align-items:center; height:50px; }
 .h-cell.bull { background:#003300; border-color:#0F0; }
 .h-cell.bear { background:#330000; border-color:#F00; }
 .h-cell.hold { background:#1a1a00; border-color:#aa0; }
 .h-sym { color:#FFF; font-weight:bold; font-size:12px; }
 .h-val { font-family:Consolas,monospace; font-size:10px; color:#AAA; }
-.h-pct { font-family:Consolas,monospace; font-size:12px; font-weight:bold; }
+.h-pct { font-family:Consolas,monospace; font-size:11px; font-weight:bold; }
 .console { font-family:Consolas,monospace; font-size:10px; color:#0F0; line-height:1.3; }
+
+/* Inspector Tab Styling */
+.insp-tab-bar { display:flex; gap:2px; background:#111; padding:2px; border-bottom:1px solid #333; }
+.insp-btn { background:#222; color:#888; border:none; padding:3px 8px; font-size:10px; font-family:Consolas,monospace; cursor:pointer; font-weight:bold; }
+.insp-btn:hover { background:#333; color:#FFF; }
+.insp-btn.active { background:#00FFFF; color:#000; }
+
 .footer { display:flex; justify-content:space-between; padding:2px 8px; border-top:1px solid #333; font-family:Consolas,monospace; font-size:10px; color:#666; background:#050505; }
 .clock b { color:#AAA; }
 ::-webkit-scrollbar { width:6px; }
@@ -141,19 +147,31 @@ td { padding:4px; border-bottom:1px dotted #222; }
 </div>
 
 <div class="terminal-grid">
-  <!-- Panel 1: Equity Chart + Allocation -->
+  <!-- Panel 1: Portfolio Allocation & Performance -->
   <div class="panel">
     <div class="panel-head">
-      <span class="panel-title">PORTFOLIO PERFORMANCE &amp; ALLOCATION</span>
+      <span class="panel-title">PORTFOLIO ALLOCATION &amp; PERFORMANCE</span>
       <span class="panel-subtitle" id="chart-tick-time">TICK: --</span>
     </div>
-    <div class="panel-body" style="display:flex;flex-direction:column;gap:4px;">
-      <div style="flex:1;position:relative;min-height:120px;"><canvas id="equityChart"></canvas></div>
-      <div style="flex:1;position:relative;min-height:120px;border-top:1px dotted #333;padding-top:4px;"><canvas id="allocationChart"></canvas></div>
+    <div class="panel-body" style="display:flex;flex-direction:column;gap:6px;padding:6px;">
+      <div style="height:105px;position:relative;"><canvas id="equityChart"></canvas></div>
+      <div style="border-top:1px dotted #333;padding-top:6px;display:flex;flex-direction:column;gap:4px;">
+        <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:10px;">
+          <span style="color:#FFA500;">ASSET ALLOCATION BREAKDOWN</span>
+          <span style="color:#00FFFF;" id="alloc-cash-pct">CASH: 100%</span>
+        </div>
+        <!-- Multi-segment Allocation Bar -->
+        <div style="height:12px;width:100%;background:#111;border:1px solid #333;display:flex;overflow:hidden;border-radius:2px;" id="alloc-bar-container">
+          <div id="bar-cash" style="width:100%;background:#00FFFF;" title="Cash"></div>
+        </div>
+        <div id="alloc-list-container" style="font-family:Consolas,monospace;font-size:10px;color:#AAA;display:flex;flex-wrap:wrap;gap:8px;margin-top:2px;">
+          <span style="color:#00FFFF;">• Cash: 100%</span>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Panel 2: AI Signals Heatmap -->
+  <!-- Panel 2: Global Macro Movers & Signals -->
   <div class="panel">
     <div class="panel-head">
       <span class="panel-title">GLOBAL MACRO MOVERS &amp; SIGNALS</span>
@@ -190,38 +208,47 @@ td { padding:4px; border-bottom:1px dotted #222; }
     </div>
     <div class="panel-body" style="padding:0;">
       <table>
-        <thead><tr><th>TIME</th><th>SYM</th><th>P&amp;L</th><th>REFLECTION</th></tr></thead>
+        <thead><tr><th>TIME</th><th>SYM</th><th>P&amp;L</th><th>REFLECTION &amp; LESSON</th></tr></thead>
         <tbody id="memory-table"><tr><td colspan="4" style="color:#555;">No records.</td></tr></tbody>
       </table>
     </div>
   </div>
 
-  <!-- Panel 5: Console Stream -->
+  <!-- Panel 5: Real-time Execution Timeline -->
   <div class="panel">
     <div class="panel-head">
-      <span class="panel-title">STDOUT CONSOLE STREAM</span>
-      <span class="panel-subtitle">SYS.LOG</span>
+      <span class="panel-title">REAL-TIME EXECUTION TIMELINE</span>
+      <span class="panel-subtitle">LIVE TRADING LOG</span>
     </div>
     <div class="panel-body">
-      <div class="console" id="terminal-log">[SYSTEM] Terminal initialized...</div>
+      <div class="console" id="terminal-log" onmouseenter="isLogHovered=true" onmouseleave="isLogHovered=false">[SYSTEM] Engine online. Awaiting trade execution...</div>
     </div>
   </div>
 
-  <!-- Panel 6: AI Chat -->
+  <!-- Panel 6: Live AI Prompt & Inference Inspector -->
   <div class="panel">
     <div class="panel-head">
-      <span class="panel-title">AI NEURAL CHAT</span>
-      <span class="panel-subtitle">DIRECT LINK</span>
+      <span class="panel-title">LIVE AI PROMPT &amp; INFERENCE INSPECTOR</span>
+      <span class="panel-subtitle" id="telemetry-model-lbl">DEEPSEEK-V4</span>
     </div>
-    <div class="panel-body" style="display:flex;flex-direction:column;height:100%;">
-      <div class="console" id="chat-console" style="flex:1;overflow-y:auto;padding-bottom:5px;">
-        <div style="color:#0F0;">[SYSTEM] Secure neural link established.</div>
+    <div class="insp-tab-bar" style="background:#080808;border-bottom:1px solid #222;display:flex;justify-content:space-between;padding:2px 4px;">
+      <div style="display:flex;gap:2px;">
+        <button class="insp-btn active" id="chan-entry" onclick="setInspectorChannel('ENTRY')">🟢 ENTRY SELECTION</button>
+        <button class="insp-btn" id="chan-exit" onclick="setInspectorChannel('EXIT')">🔴 POSITION EXIT</button>
       </div>
-      <div style="display:flex;margin-top:5px;">
-        <input type="text" id="chat-input" placeholder="Query OmniAlpha..."
-               style="flex:1;background:#000;color:#0F0;border:1px solid #333;font-family:Consolas,monospace;padding:2px 4px;font-size:11px;"
-               onkeydown="if(event.key==='Enter')sendChat()">
-        <button onclick="sendChat()" style="background:#0F0;color:#000;border:none;cursor:pointer;font-weight:bold;font-size:11px;padding:2px 8px;margin-left:5px;">SEND</button>
+      <div style="display:flex;gap:2px;">
+        <button class="insp-btn active" id="tab-input" onclick="setInspectorTab('input')">INPUT PROMPT</button>
+        <button class="insp-btn" id="tab-output" onclick="setInspectorTab('output')">RAW OUTPUT</button>
+        <button class="insp-btn" id="tab-summary" onclick="setInspectorTab('summary')">DECISION</button>
+      </div>
+    </div>
+    <div class="panel-body" style="padding:6px;display:flex;flex-direction:column;gap:4px;">
+      <div style="display:flex;justify-content:space-between;font-family:Consolas,monospace;font-size:10px;color:#888;border-bottom:1px dotted #333;padding-bottom:2px;">
+        <span>LAST CYCLE TIME: <b style="color:#FFF;" id="telemetry-time-lbl">--:--:--</b></span>
+        <span style="color:#00FF00;" id="telemetry-status-lbl">STATUS: 200 OK ⚡</span>
+      </div>
+      <div class="console" id="ai-telemetry-box" style="flex:1;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-size:10px;line-height:1.35;padding-top:4px;">
+        Awaiting live cycle telemetry...
       </div>
     </div>
   </div>
@@ -247,11 +274,53 @@ const equityChart = new Chart(document.getElementById('equityChart').getContext(
     scales: { x: { grid: { color: '#1a1a1a' } }, y: { grid: { color: '#1a1a1a' } } } }
 });
 
-const allocationChart = new Chart(document.getElementById('allocationChart').getContext('2d'), {
-  type: 'doughnut',
-  data: { labels: [], datasets: [{ data: [], backgroundColor: ['#00FF00','#00FFFF','#FFA500','#FF00FF','#FFFF00','#FF0000'], borderWidth: 0 }] },
-  options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: 'right' } } }
-});
+window.latestTelemetry = null;
+window.latestCognitionStream = "";
+let currentInspectorChannel = 'ENTRY';
+let currentInspectorTab = 'input';
+let isLogHovered = false;
+
+function setInspectorChannel(chan) {
+  currentInspectorChannel = chan;
+  document.getElementById('chan-entry').classList.toggle('active', chan === 'ENTRY');
+  document.getElementById('chan-exit').classList.toggle('active', chan === 'EXIT');
+  renderInspector();
+}
+
+function setInspectorTab(tab) {
+  currentInspectorTab = tab;
+  document.getElementById('tab-input').classList.toggle('active', tab === 'input');
+  document.getElementById('tab-output').classList.toggle('active', tab === 'output');
+  document.getElementById('tab-summary').classList.toggle('active', tab === 'summary');
+  renderInspector();
+}
+
+function renderInspector() {
+  const box = document.getElementById('ai-telemetry-box');
+  if (!window.latestTelemetry) {
+    box.innerHTML = '<div style="color:#666;">Awaiting first 5-second AI decision cycle...</div>';
+    return;
+  }
+  const channelData = (currentInspectorChannel === 'EXIT')
+    ? (window.latestTelemetry.latest_exit || window.latestTelemetry)
+    : (window.latestTelemetry.latest_entry || window.latestTelemetry);
+
+  document.getElementById('telemetry-model-lbl').innerText = channelData.model_used || 'DEEPSEEK-V4';
+  document.getElementById('telemetry-time-lbl').innerText = channelData.timestamp || '--:--:--';
+
+  if (currentInspectorTab === 'input') {
+    box.innerHTML = `<div style="color:#FFA500;font-weight:bold;margin-bottom:4px;">// SYSTEM INSTRUCTION [CHANNEL: ${currentInspectorChannel}]:</div>` +
+                    `<div style="color:#888;margin-bottom:8px;">${channelData.system_prompt || ''}</div>` +
+                    `<div style="color:#00FFFF;font-weight:bold;margin-bottom:4px;">// USER PROMPT & MARKET TELEMETRY SENT TO LLM:</div>` +
+                    `<div style="color:#FFF;">${channelData.user_prompt || ''}</div>`;
+  } else if (currentInspectorTab === 'output') {
+    box.innerHTML = `<div style="color:#00FF00;font-weight:bold;margin-bottom:4px;">// RAW LLM INFERENCE OUTPUT (${channelData.model_used || 'LLM'}):</div>` +
+                    `<div style="color:#00FF00;white-space:pre-wrap;">${channelData.raw_response || 'No response recorded.'}</div>`;
+  } else {
+    box.innerHTML = `<div style="color:#00FFFF;font-weight:bold;margin-bottom:4px;">// AI MASTER TRADER EXECUTIVE DECISION SUMMARY:</div>` +
+                    `<div style="color:#FFF;white-space:pre-wrap;line-height:1.4;">${window.latestCognitionStream || 'Scanning market opportunities.'}</div>`;
+  }
+}
 
 window.onload = () => {
   const overlay = document.getElementById('auth-overlay');
@@ -320,10 +389,36 @@ async function fetchDashboard() {
       document.getElementById('chart-tick-time').innerText = 'TICK: ' + d.equity_history[d.equity_history.length - 1].time;
     }
 
-    // AI Signals heatmap + table + Allocation Chart
+    // Asset Breakdown Bar (Cash vs Holdings)
+    const eq = (d.account && !d.account.error) ? Number(d.account.equity) : 100000;
+    const posList = d.positions || [];
+    let stockTotal = 0;
+    let barHtml = '';
+    let listHtml = '';
+    const colors = ['#00FF00', '#FFA500', '#FF00FF', '#FFFF00', '#FF0000'];
+
+    posList.forEach((p, idx) => {
+      const val = Number(p.market_value || 0);
+      stockTotal += val;
+      const pct = (val / eq * 100).toFixed(1);
+      const c = colors[idx % colors.length];
+      barHtml += `<div style="width:${pct}%;background:${c};" title="${p.symbol}: ${pct}%"></div>`;
+      listHtml += `<span style="color:${c};">• ${p.symbol}: ${pct}% ($${val.toLocaleString(undefined,{maximumFractionDigits:0})})</span> `;
+    });
+
+    const cashVal = Math.max(0, eq - stockTotal);
+    const cashPct = (cashVal / eq * 100).toFixed(1);
+    barHtml = `<div style="width:${cashPct}%;background:#00FFFF;" title="Cash: ${cashPct}%"></div>` + barHtml;
+    listHtml = `<span style="color:#00FFFF;">• Cash: ${cashPct}% ($${cashVal.toLocaleString(undefined,{maximumFractionDigits:0})})</span> ` + listHtml;
+
+    document.getElementById('alloc-bar-container').innerHTML = barHtml;
+    document.getElementById('alloc-list-container').innerHTML = listHtml;
+    document.getElementById('alloc-cash-pct').innerText = `CASH: ${cashPct}%`;
+
+    // AI Signals heatmap + table
     let sigList = (d.signals && d.signals.length > 0) ? d.signals : [];
-    if (sigList.length === 0 && d.positions && d.positions.length > 0) {
-      sigList = d.positions.map(p => ({
+    if (sigList.length === 0 && posList.length > 0) {
+      sigList = posList.map(p => ({
         symbol: p.symbol,
         action: 'HOLD_POSITION',
         reason: 'Growth corridor active. Allowing trade room to run.',
@@ -333,48 +428,36 @@ async function fetchDashboard() {
     if (sigList.length === 0) {
       sigList = [
         {symbol: 'NVDA', action: 'PROPOSE_TRADE', reason: 'High RVOL breakout catalyst', confidence: 0.88},
-        {symbol: 'MSTR', action: 'PROPOSE_TRADE', reason: 'Bitcoin momentum surge', confidence: 0.85},
-        {symbol: 'COIN', action: 'HOLD_POSITION', reason: 'Consolidating near VWAP', confidence: 0.65},
-        {symbol: 'TSLA', action: 'HOLD_POSITION', reason: 'Volume consolidation', confidence: 0.60},
-        {symbol: 'PLTR', action: 'HOLD_POSITION', reason: 'Awaiting earnings catalyst', confidence: 0.55},
-        {symbol: 'CRWD', action: 'HOLD_POSITION', reason: 'Holding steady in corridor', confidence: 0.70}
+        {symbol: 'DELL', action: 'PROPOSE_TRADE', reason: 'AI server infrastructure demand', confidence: 0.80},
+        {symbol: 'PLTR', action: 'HOLD_POSITION', reason: 'Awaiting earnings momentum', confidence: 0.65},
+        {symbol: 'AVGO', action: 'HOLD_POSITION', reason: 'Custom ASIC momentum surge', confidence: 0.85},
+        {symbol: 'CRWD', action: 'HOLD_POSITION', reason: 'Institutional consolidation', confidence: 0.70},
+        {symbol: 'PYPL', action: 'HOLD_POSITION', reason: 'Volume consolidation near support', confidence: 0.60}
       ];
     }
 
-    let heat = '', sig = '', allocLabels = [], allocData = [];
+    let heat = '', sig = '';
     sigList.forEach(s => {
-      const pos = (d.positions || []).find(p => p.symbol === s.symbol);
+      const pos = posList.find(p => p.symbol === s.symbol);
       const mktVal = pos ? Number(pos.market_value || 0) : 0;
       const pnl = pos ? Number(pos.unrealized_pl || 0) : 0;
       const pnlPct = mktVal > 0 ? (pnl / mktVal * 100) : 0;
-      const pctStr = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%';
-      const pxVal = pos ? Number(pos.current_price || 0) : 0;
       const act = s.action || 'HOLD';
       const isBull = act === 'PROPOSE_TRADE';
       const isHold = act === 'HOLD_POSITION';
+      const pctStr = pos ? ((pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%') : (isBull ? 'PROPOSE' : 'WATCH');
+      const pxVal = pos ? Number(pos.current_price || 0) : 0;
       const cls = isBull ? 'bull' : (isHold ? 'hold' : 'bear');
       const pctCol = pnlPct >= 0 ? 't-green' : 't-red';
-      allocLabels.push(s.symbol);
-      allocData.push(mktVal > 0 ? mktVal : 100);
-      const valDisplay = pxVal > 0 ? '$' + pxVal.toFixed(2) : (act === 'PROPOSE_TRADE' ? 'SIGNAL' : 'CASH');
+      const valDisplay = pxVal > 0 ? '$' + pxVal.toFixed(2) : (act === 'PROPOSE_TRADE' ? 'SIGNAL' : 'WATCHLIST');
       heat += `<div class="h-cell ${cls}"><div class="h-sym">${s.symbol}</div><div class="h-pct ${pctCol}">${pctStr}</div><div class="h-val">${valDisplay}</div></div>`;
       const col = isBull ? 't-green' : 't-red';
       const confStr = ((s.confidence || 0.8) * 100).toFixed(0) + '%';
-      sig += `<tr><td><b>${s.symbol}</b></td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.reason||''}</td><td class="${col}">${act}</td><td>${confStr}</td></tr>`;
+      sig += `<tr><td><b>${s.symbol}</b></td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.reason||''}</td><td class="${col}">${act}</td><td>${confStr}</td></tr>`;
     });
 
     document.getElementById('heatmap-matrix').innerHTML = heat;
     document.getElementById('signal-table').innerHTML = sig;
-
-    // Update Allocation Pie Chart
-    if (d.positions && d.positions.length > 0) {
-      allocationChart.data.labels = d.positions.map(p => p.symbol);
-      allocationChart.data.datasets[0].data = d.positions.map(p => Number(p.market_value || 0));
-    } else {
-      allocationChart.data.labels = allocLabels;
-      allocationChart.data.datasets[0].data = allocData;
-    }
-    allocationChart.update();
 
     // Positions
     if (d.positions !== undefined) {
@@ -392,7 +475,7 @@ async function fetchDashboard() {
       }
     }
 
-    // Reflexion memory
+    // Reflexion Memory & Journal
     if (d.memory_journal && d.memory_journal.length > 0) {
       document.getElementById('lesson-count').innerText = d.memory_journal.length + ' ENTRIES';
       let html = '';
@@ -400,17 +483,33 @@ async function fetchDashboard() {
         const pnl = Number(l.pnl_dollars || 0);
         const col = pnl >= 0 ? 't-green' : 't-red';
         const t = l.timestamp ? l.timestamp.substr(11,8) : '--';
-        html += `<tr><td>${t}</td><td><b>${l.symbol}</b></td><td class="${col}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.lesson_learned||''}</td></tr>`;
+        html += `<tr><td>${t}</td><td><b>${l.symbol}</b></td><td class="${col}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.lesson_learned||''}</td></tr>`;
       });
       document.getElementById('memory-table').innerHTML = html;
     }
 
-    // Console stream
+    // Real-time Execution Log Stream
     if (d.console_logs && d.console_logs.length > 0) {
       const el = document.getElementById('terminal-log');
-      el.innerHTML = d.console_logs.slice(-30).map(l => `<div>${l}</div>`).join('');
-      el.scrollTop = el.scrollHeight;
+      el.innerHTML = d.console_logs.slice(-30).map(l => {
+        if (l.includes('ORDER SENT') || l.includes('ENTRY')) return `<div style="color:#00FF00;">${l}</div>`;
+        if (l.includes('EXIT')) return `<div style="color:#FFA500;">${l}</div>`;
+        if (l.includes('REVOLVER') || l.includes('ROUTER')) return `<div style="color:#00FFFF;">${l}</div>`;
+        return `<div>${l}</div>`;
+      }).join('');
+      if (!isLogHovered) {
+        el.scrollTop = el.scrollHeight;
+      }
     }
+
+    // Live AI Prompt & Inference Telemetry
+    if (d.ai_telemetry) {
+      window.latestTelemetry = d.ai_telemetry;
+    }
+    if (d.ai_cognition_stream) {
+      window.latestCognitionStream = d.ai_cognition_stream;
+    }
+    renderInspector();
 
   } catch(e) { console.error('Dashboard fetch error:', e); }
 }
@@ -426,24 +525,6 @@ async function triggerKillSwitch() {
   if (!confirm('HALT all trading? (Kill switch)')) return;
   const r = await fetch('/api/kill_switch', { method: 'POST' });
   alert('Kill switch engaged.');
-}
-
-async function sendChat() {
-  const inp = document.getElementById('chat-input');
-  const msg = inp.value.trim();
-  if (!msg) return;
-  inp.value = '';
-  const cc = document.getElementById('chat-console');
-  cc.innerHTML += `<div style="color:#0FF;">[YOU] ${msg}</div>`;
-  cc.scrollTop = cc.scrollHeight;
-  try {
-    const r = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg}) });
-    const d = await r.json();
-    cc.innerHTML += `<div style="color:#0F0;">[OMNI] ${d.reply || 'No response.'}</div>`;
-    cc.scrollTop = cc.scrollHeight;
-  } catch(e) {
-    cc.innerHTML += `<div style="color:#F00;">[ERROR] Chat unavailable.</div>`;
-  }
 }
 </script>
 </body>
@@ -467,7 +548,6 @@ def index():
 def verify_pass():
     data = request.get_json(silent=True) or {}
     pw = data.get("password", "")
-    # Simple hardcoded passphrase — change as needed
     if pw in ("omni2024", "omnialpha", "alpha", "1234"):
         return jsonify({"status": "SUCCESS"})
     return jsonify({"status": "DENIED"})
@@ -483,6 +563,8 @@ def get_state():
     equity = float(account.get("equity", 100000)) if "error" not in account else 100000.0
     realized = round(equity - 100000.0 - total_floating_pnl, 2)
 
+    from core.deepseek_router import ai_router
+
     return jsonify({
         "account": account,
         "positions": positions,
@@ -493,6 +575,9 @@ def get_state():
         "status": state.get("status", "ACTIVE"),
         "console_logs": state.get("console_logs", []),
         "memory_journal": reflexion_memory.get_all_entries(),
+        "ai_cognition_stream": state.get("ai_cognition_stream", "🧠 [AI MASTER TRADER COGNITION] Engine scanning market feeds..."),
+        "revolver_status": state.get("revolver_status", {}),
+        "ai_telemetry": ai_router.get_last_telemetry()
     })
 
 
@@ -515,27 +600,5 @@ def liquidate():
     return jsonify(result)
 
 
-@app.route("/api/chat", methods=["POST"])
-def chat():
-    data = request.get_json(silent=True) or {}
-    user_msg = data.get("message", "").strip()
-    if not user_msg:
-        return jsonify({"reply": "No message received."})
-    try:
-        from core.deepseek_router import ai_router
-        account = alpaca_client.get_account_summary()
-        positions = alpaca_client.get_positions()
-        sys_prompt = (
-            "You are OmniAlpha, an elite autonomous quantitative trading AI. "
-            "Answer the portfolio manager's question concisely and authoritatively. "
-            f"Context: Equity=${account.get('equity', '?')}, Open Positions={len(positions)}."
-        )
-        reply = ai_router.query(prompt=user_msg, system_prompt=sys_prompt)
-        return jsonify({"reply": reply or "Neural core busy. Try again."})
-    except Exception as e:
-        return jsonify({"reply": f"Error: {e}"})
-
-
 if __name__ == "__main__":
-    # When run directly for local dev only
     app.run(host="0.0.0.0", port=config.PORT, debug=True)

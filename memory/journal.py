@@ -57,12 +57,37 @@ class ReflexionMemory:
                 return item
         return None
 
+    def reconcile_journal(self, active_symbols: set):
+        """Auto-reconcile open journal entries against active Alpaca holdings."""
+        changed = False
+        for item in self.journal:
+            if item.get("status") == "OPEN" and item.get("symbol") not in active_symbols:
+                item["status"] = "CLOSED"
+                pnl = item.get("pnl_dollars", 0.0)
+                if pnl > 0:
+                    item["lesson_learned"] = f"WIN +${pnl:.2f}. Trade position closed."
+                elif pnl < 0:
+                    item["lesson_learned"] = f"LOSS -${abs(pnl):.2f}. Require stronger catalyst next time."
+                else:
+                    item["lesson_learned"] = "Position closed / liquidated."
+                changed = True
+        if changed:
+            self._save()
+
     def get_lessons_for_symbol(self, symbol: str) -> List[str]:
         return [
             item["lesson_learned"]
             for item in self.journal
             if item["symbol"] == symbol and item.get("status") == "CLOSED" and item.get("lesson_learned")
         ][-3:]
+
+    def get_recent_closed_lessons(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Extract recent closed trade outcomes and lessons learned for prompt injection."""
+        closed = [
+            item for item in self.journal 
+            if item.get("status") == "CLOSED" and "lesson_learned" in item
+        ]
+        return closed[-limit:]
 
     def get_all_entries(self) -> List[Dict[str, Any]]:
         return self.journal[-10:]
