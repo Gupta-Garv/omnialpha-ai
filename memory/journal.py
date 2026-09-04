@@ -92,5 +92,21 @@ class ReflexionMemory:
     def get_all_entries(self) -> List[Dict[str, Any]]:
         return self.journal[-10:]
 
+    def is_symbol_in_loss_cooldown(self, symbol: str, cooldown_seconds: int = 3600) -> bool:
+        """Check if symbol suffered a stop-loss within the cooldown window (default 60 mins)."""
+        now = datetime.now().timestamp()
+        for item in reversed(self.journal):
+            if item.get("symbol") == symbol and item.get("status") == "CLOSED":
+                pnl = item.get("pnl_dollars", 0.0)
+                ts_str = item.get("timestamp")
+                if pnl < 0 and ts_str:
+                    try:
+                        entry_ts = datetime.fromisoformat(ts_str).timestamp()
+                        if (now - entry_ts) < cooldown_seconds:
+                            return True
+                    except Exception:
+                        pass
+        return False
+
 
 reflexion_memory = ReflexionMemory()

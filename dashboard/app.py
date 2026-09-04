@@ -298,7 +298,7 @@ function setInspectorTab(tab) {
 function renderInspector() {
   const box = document.getElementById('ai-telemetry-box');
   if (!window.latestTelemetry) {
-    box.innerHTML = '<div style="color:#666;">Awaiting first 5-second AI decision cycle...</div>';
+    box.innerHTML = '<div style="color:#666;">Awaiting first 2-second AI decision cycle...</div>';
     return;
   }
   const channelData = (currentInspectorChannel === 'EXIT')

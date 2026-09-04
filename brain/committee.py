@@ -55,10 +55,13 @@ class TradingCommittee:
         equity = float(account.get("equity", 100000.0))
         buying_power = float(account.get("buying_power", 300000.0))
 
-        # Filter out already held symbols
-        available_candidates = [c for c in candidates if c not in active_symbols]
+        # Filter out already held symbols AND symbols in recent stop-loss cooldown (15 mins)
+        available_candidates = [
+            c for c in candidates 
+            if c not in active_symbols and not reflexion_memory.is_symbol_in_loss_cooldown(c, cooldown_seconds=900)
+        ]
         if not available_candidates:
-            return self._hold("ALL", "All target stocks are currently held in active portfolio.")
+            return self._hold("ALL", "All target stocks are active or in 15-minute stop-loss cooldown.")
 
         # Build candidate market telemetry summary
         telemetry = []

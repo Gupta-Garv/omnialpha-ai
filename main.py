@@ -225,7 +225,7 @@ def main():
             log(f"CYCLE ERROR: {e}")
             traceback.print_exc()
 
-        time.sleep(5)  # 5-second high-velocity cycle interval powered by Revolver Key Rotator
+        time.sleep(2)  # 2-second high-velocity cycle interval powered by Revolver Key Rotator
 
 
 if __name__ == "__main__":
